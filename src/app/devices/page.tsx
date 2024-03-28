@@ -1,8 +1,7 @@
-'use client'
+"use client";
 
 import { useEffect, useState } from "react";
-import { invoke } from '@tauri-apps/api/tauri';
-
+import { invoke } from "@tauri-apps/api/tauri";
 
 interface ArpEntry {
   ip_address: string;
@@ -10,19 +9,17 @@ interface ArpEntry {
 }
 
 export default function Devices() {
-
   const [arpEntries, setArpEntries] = useState<ArpEntry[]>([]);
 
   useEffect(() => {
-    invoke<ArpEntry[]>('my_custom_command')
+    invoke<ArpEntry[]>("get_devices")
       .then((entries) => {
         setArpEntries(entries);
       })
       .catch((error) => {
-        console.error('Failed to load ARP entries:', error);
+        console.error("Failed to load ARP entries:", error);
       });
   }, []);
-
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">

@@ -3,11 +3,11 @@
 
 
 mod devices;
-use crate::devices::devices::my_custom_command;
+use crate::devices::devices::get_devices;
 
 fn main() {
   tauri::Builder::default()
-    .invoke_handler(tauri::generate_handler![my_custom_command])
+    .invoke_handler(tauri::generate_handler![get_devices])
     .run(tauri::generate_context!())
     .expect("error while running tauri application");
 }

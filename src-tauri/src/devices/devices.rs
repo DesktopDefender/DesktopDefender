@@ -10,7 +10,7 @@ pub struct ArpEntry {
 
 
 #[tauri::command]
-pub fn my_custom_command() -> Vec<ArpEntry> {
+pub async fn get_devices() -> Vec<ArpEntry> {
     let output = Command::new("arp")
         .arg("-a")
         .output()

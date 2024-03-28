@@ -2,8 +2,7 @@ import Link from 'next/link';
 
 export default function Navbar() {
     return (
-      <nav>
-        <div className="drawer">
+      <nav><div className="drawer">
             <input id="my-drawer" type="checkbox" className="drawer-toggle" />
             <div className="drawer-content">
                 <label htmlFor="my-drawer" className="btn btn-primary drawer-button">Open drawer</label>

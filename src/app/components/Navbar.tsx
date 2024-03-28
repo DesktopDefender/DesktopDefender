@@ -14,6 +14,7 @@ export default function Navbar() {
                 <ul className="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
                     <li><Link href="/">Home</Link></li>
                     <li><Link href="/devices">Devices</Link></li>
+                    <li><Link href="/monitor">Monitor</Link></li>
                 </ul>
             </div>
         </div>

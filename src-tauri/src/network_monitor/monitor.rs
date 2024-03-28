@@ -1,7 +1,5 @@
-// extern crate pcap;
-// extern crate pnet;
-
-use colored::*;
+use serde_json;
+use serde::{Serialize, Deserialize};
 use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::{
     ethernet::{EtherTypes, EthernetPacket},
@@ -11,91 +9,82 @@ use pnet::packet::{
     Packet,
 };
 
-#[tauri::command]
-pub fn listen_to_traffic() {
-    let devices = match pcap::Device::list() {
-        Ok(devices) => devices,
-        Err(e) => {
-            println!("Error retrieving device list: {}", e);
-            return;
-        }
-    };
+#[derive(Serialize, Deserialize)]
+pub struct PacketInfo {
+    protocol: String,
+    source: String,
+    destination: String,
+    length: u32,
+}
 
+#[tauri::command]
+pub fn listen_to_traffic() -> Result<String, String> {
+    let devices = pcap::Device::list().map_err(|e| e.to_string())?;
+    
     if devices.is_empty() {
-        println!("No available network devices found.");
-        return;
+        return Err("No available network devices found.".into());
+    }
+    
+    let device = devices.into_iter().find(|d| d.name == "en0").ok_or("Device 'en0' not found.")?;
+    
+    let mut cap = pcap::Capture::from_device(device)
+        .map_err(|e| e.to_string())?
+        .promisc(true)
+        .open()
+        .map_err(|e| e.to_string())?
+        .setnonblock().map_err(|e| e.to_string())?;
+    
+
+    let mut packets = Vec::new();
+    
+    for _ in 0..10 {
+        if let Ok(packet) = cap.next_packet() {
+            if let Some(packet_info) = process_packet(&packet) {
+                packets.push(packet_info);
+            }
+        } else {
+            break;
+        }
     }
 
-    let mut cap = match pcap::Capture::from_device("en0") {
-        Ok(dev) => match dev.promisc(true).open() {
-            Ok(cap) => cap,
-            Err(e) => {
-                println!("Error opening capture on device: {}", e);
-                return;
+    serde_json::to_string(&packets).map_err(|e| e.to_string())
+}
+
+fn process_packet(packet: &pcap::Packet) -> Option<PacketInfo> {
+    let ethernet_packet = EthernetPacket::new(&packet.data)?;
+
+    let (protocol, source, destination, length) = match ethernet_packet.get_ethertype() {
+        EtherTypes::Ipv4 => {
+            let ipv4_packet = Ipv4Packet::new(ethernet_packet.payload())?;
+            match ipv4_packet.get_next_level_protocol() {
+                IpNextHeaderProtocols::Tcp => {
+                    let _tcp_packet = TcpPacket::new(ipv4_packet.payload())?;
+                    (
+                        "TCP".to_string(),
+                        ipv4_packet.get_source().to_string(),
+                        ipv4_packet.get_destination().to_string(),
+                        packet.header.len,
+                    )
+                },
+                IpNextHeaderProtocols::Udp => {
+                    let _udp_packet = UdpPacket::new(ipv4_packet.payload())?;
+                    (
+                        "UDP".to_string(),
+                        ipv4_packet.get_source().to_string(),
+                        ipv4_packet.get_destination().to_string(),
+                        packet.header.len,
+                    )
+                },
+                _ => return None,
             }
         },
-        Err(e) => {
-            println!("Error finding device 'en0': {}", e);
-            return;
-        }
+        _ => return None,
     };
 
-    while let Ok(packet) = cap.next_packet() {
-        process_packet(&packet);
-    }
-}
-
-fn process_packet(packet: &pcap::Packet) {
-    if let Some(ethernet_packet) = EthernetPacket::new(&packet.data) {
-        match ethernet_packet.get_ethertype() {
-            EtherTypes::Ipv4 => {
-                if let Some(ipv4_packet) = Ipv4Packet::new(ethernet_packet.payload()) {
-                    match ipv4_packet.get_next_level_protocol() {
-                        IpNextHeaderProtocols::Tcp => {
-                            process_tcp_packet(&ipv4_packet, packet.header.len)
-                        }
-                        IpNextHeaderProtocols::Udp => {
-                            process_udp_packet(&ipv4_packet, packet.header.len)
-                        }
-                        _ => (),
-                    }
-                }
-            }
-            _ => (),
-        }
-    }
-}
-
-fn process_tcp_packet(ipv4_packet: &Ipv4Packet, original_packet_length: u32) {
-    if let Some(tcp_packet) = TcpPacket::new(ipv4_packet.payload()) {
-        println!(
-            "{}",
-            format!(
-                "TCP Packet: {}:{} -> {}:{}; Len: {}",
-                ipv4_packet.get_source(),
-                tcp_packet.get_source(),
-                ipv4_packet.get_destination(),
-                tcp_packet.get_destination(),
-                original_packet_length,
-            )
-            .bright_blue()
-        );
-    }
-}
-
-fn process_udp_packet(ipv4_packet: &Ipv4Packet, original_packet_length: u32) {
-    if let Some(udp_packet) = UdpPacket::new(ipv4_packet.payload()) {
-        println!(
-            "{}",
-            format!(
-                "UDP Packet: {}:{} -> {}:{}; Len: {}",
-                ipv4_packet.get_source(),
-                udp_packet.get_source(),
-                ipv4_packet.get_destination(),
-                udp_packet.get_destination(),
-                original_packet_length,
-            )
-            .magenta()
-        );
-    }
+    Some(PacketInfo {
+        protocol,
+        source,
+        destination,
+        length,
+    })
 }

@@ -30,15 +30,35 @@ export default function Monitor() {
 	}, []);
 
 	return (
-		<main className="flex min-h-screen flex-col items-center justify-between p-24">
-			<ul>
-				{packets.map((packet, index) => (
-					<li className="text-white" key={index}>
-						Protocol: {packet.protocol}, Source: {packet.source}, Destination:{" "}
-						{packet.destination}, Length: {packet.length}
-					</li>
-				))}
-			</ul>
+		<main className="flex min-h-screen flex-col items-center justify-between p-4">
+			<div className="overflow-x-auto">
+				<table className="table">
+					<thead>
+						<tr>
+							<th></th>
+							<th>Protocol</th>
+							<th>Source</th>
+							<th>Destination</th>
+							<th>Length</th>
+						</tr>
+					</thead>
+				</table>
+				<div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
+					<table className="table">
+						<tbody>
+							{packets.map((packet, index) => (
+								<tr className="bg-base-200">
+									<th>{index}</th>
+									<td>{packet.protocol}</td>
+									<td>{packet.source}</td>
+									<td>{packet.destination}</td>
+									<td>{packet.length}</td>
+								</tr>
+							))}
+						</tbody>
+					</table>
+				</div>
+			</div>
 		</main>
 	);
 }

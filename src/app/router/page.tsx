@@ -16,7 +16,7 @@ export default function Router() {
   };
 
   return (
-    <div className="border-2 flex items-center justify-center h-max">
+    <div className="border-2 flex items-center justify-center h-screen">
       <div>
         <DDText className="text-3xl">{`hello, ${greet}`}</DDText>
         <button

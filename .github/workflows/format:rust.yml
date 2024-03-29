@@ -15,5 +15,9 @@ jobs:
       - uses: actions-rust-lang/setup-rust-toolchain@v1
         with:
           components: rustfmt
+
+      - name: navigate to rust folder
+        run: cd src-tauri
+        
       - name: Rustfmt Check
         run: cargo fmt --check

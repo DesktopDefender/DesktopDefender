@@ -1,6 +1,20 @@
 import Link from "next/link";
 
+const routes = [
+  { href: "/", name: "Home" },
+  { href: "/router", name: "Router" },
+  { href: "/devices", name: "Devices" },
+];
+
 export default function Navbar() {
+  const renderItems = () => {
+    return routes.map((r) => (
+      <li>
+        <Link href={r.href}>{r.name}</Link>
+      </li>
+    ));
+  };
+
   return (
     <nav>
       <div className="drawer">
@@ -18,12 +32,7 @@ export default function Navbar() {
             className="drawer-overlay"
           />
           <ul className="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
-            <li>
-              <Link href="/">Home</Link>
-            </li>
-            <li>
-              <Link href="/devices">Devices</Link>
-            </li>
+            {renderItems()}
           </ul>
         </div>
       </div>

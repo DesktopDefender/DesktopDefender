@@ -1,9 +1,12 @@
-use serde::Serialize;
 use std::str;
 use std::process::Command;
+use serde::{Deserialize, Serialize};
+use serde_json;
+use std::{thread, time::Duration};
+use tauri::Window;
 
 
-#[derive(Serialize)]
+#[derive(Serialize, Deserialize)]
 pub struct ArpEntry {
     pub ip_address: String,
     pub mac_address: String,
@@ -20,9 +23,52 @@ impl Default for ArpEntry {
     }
 }
 
+
+#[tauri::command]
+pub fn init_arp_listener(window: Window) {
+    std::thread::spawn(move || loop {
+        match get_devices() {
+            Ok(arp_entries) => {
+                window
+                    .emit("arp_table", &arp_entries)
+                    .expect("Failed to emit event");
+            }
+            Err(e) => eprintln!("Error listening to traffic: {}", e),
+        }
+        thread::sleep(Duration::new(300, 0)); // 5 minutes interval
+    });
+}
+
+
+pub fn get_devices() -> Result<String, String> {
+    let output = Command::new("arp")
+        .arg("-a")
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    let mut entries = Vec::new();
+
+    if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            if parts.len() > 3 && parts[1].starts_with('(') && parts[1].ends_with(')') {
+                let ip_address = parts[1].trim_matches('(').trim_matches(')').to_string();
+                let mac_address = parts[3].to_string();
+                if mac_address != "(incomplete)" {
+                    entries.push(ArpEntry { ip_address, mac_address, ..Default::default() });
+                }
+            }
+        }
+    } 
+    serde_json::to_string(&entries).map_err(|e| e.to_string())
+}
+
+
+
 #[tauri::command]
 pub async fn get_hostname(ip_address: String) -> String {
-    println!("CAllING get_hostname");
+    println!("CALLING get_hostname");
 
     let output = Command::new("dig")
         .args([
@@ -54,40 +100,4 @@ pub async fn get_hostname(ip_address: String) -> String {
             "Unknown".to_string()
         }
     }
-}
-
-
-#[tauri::command]
-pub async fn get_devices() -> Vec<ArpEntry> {
-    println!("CAllING get_devices");
-
-    let output = Command::new("arp")
-        .arg("-a")
-        .output()
-        .expect("Failed to execute command");
-
-    if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout);
-        println!("{}", stdout);
-        parse_arp_output(&stdout)
-    } else {
-        Vec::new()
-    }
-}
-
-fn parse_arp_output(output: &str) -> Vec<ArpEntry> {
-    output.lines().filter_map(|line| {
-        let parts: Vec<&str> = line.split_whitespace().collect();
-        if parts.len() > 3 && parts[1].starts_with('(') && parts[1].ends_with(')') {
-            let ip_address = parts[1].trim_matches('(').trim_matches(')').to_string();
-            let mac_address = parts[3].to_string();
-            if mac_address != "(incomplete)" {
-                Some(ArpEntry { ip_address, mac_address, ..Default::default() })
-            } else {
-                None
-            }
-        } else {
-            None
-        }
-    }).collect()
 }

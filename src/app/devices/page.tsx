@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
+import { listen } from "@tauri-apps/api/event";
 
 interface ArpEntry {
   ip_address: string;
@@ -14,13 +15,11 @@ export default function Devices() {
   const [isIdentifying, setIsIdentifying] = useState<boolean>(false);
 
   useEffect(() => {
-    invoke<ArpEntry[]>("get_devices")
-      .then((entries) => {
-        setArpEntries(entries);
-      })
-      .catch((error) => {
-        console.error("Failed to load ARP entries:", error);
-      });
+    listen("arp_table", (e) => {
+      const payload = e.payload as string;
+      const newEntries: ArpEntry[] = JSON.parse(payload);
+      setArpEntries([...newEntries]);
+    });
   }, []);
 
   async function identifyDevices() {

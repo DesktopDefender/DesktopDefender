@@ -10,7 +10,9 @@ export default function Navbar() {
   const renderItems = () => {
     return routes.map((r) => (
       <li>
-        <Link href={r.href}>{r.name}</Link>
+        <Link key={r.href} href={r.href}>
+          {r.name}
+        </Link>
       </li>
     ));
   };

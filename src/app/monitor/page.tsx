@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { invoke } from "@tauri-apps/api/tauri";
+import { listen } from "@tauri-apps/api/event";
 
 interface PacketInfo {
 	protocol: string;
@@ -14,19 +14,11 @@ export default function Monitor() {
 	const [packets, setPackets] = useState<PacketInfo[]>([]);
 
 	useEffect(() => {
-		const interval = setInterval(() => {
-			invoke<string>("listen_to_traffic")
-				.then((response) => {
-					const data: PacketInfo[] = JSON.parse(response);
-					console.log(data);
-					setPackets((currentPackets) => [...currentPackets, ...data]);
-				})
-				.catch((error: Error) =>
-					console.error("Error invoking listen_to_traffic:", error),
-				);
-		}, 500);
-
-		return () => clearInterval(interval);
+		listen("packets", (e) => {
+			const payload = e.payload as string;
+			const newPackets: PacketInfo[] = JSON.parse(payload);
+			setPackets((currentPackets) => [...currentPackets, ...newPackets]);
+		});
 	}, []);
 
 	return (

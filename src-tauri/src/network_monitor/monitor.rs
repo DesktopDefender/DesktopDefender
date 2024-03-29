@@ -9,6 +9,7 @@ use pnet::packet::{
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{thread, time::Duration};
+use tauri::{Manager, Window};
 
 #[derive(Serialize, Deserialize)]
 pub struct PacketInfo {
@@ -19,7 +20,21 @@ pub struct PacketInfo {
 }
 
 #[tauri::command]
-pub fn listen_to_traffic() -> Result<String, String> {
+pub fn init_traffic_listener(window: Window) {
+    std::thread::spawn(move || loop {
+        match listen_to_traffic() {
+            Ok(packets_json) => {
+                window
+                    .emit_all("packets", &packets_json)
+                    .expect("Failed to emit event");
+            }
+            Err(e) => eprintln!("Error listening to traffic: {}", e),
+        }
+        thread::sleep(Duration::from_millis(100));
+    });
+}
+
+fn listen_to_traffic() -> Result<String, String> {
     let devices = pcap::Device::list().map_err(|e| e.to_string())?;
 
     if devices.is_empty() {
@@ -42,7 +57,7 @@ pub fn listen_to_traffic() -> Result<String, String> {
     let mut packets = Vec::new();
 
     let start_time = std::time::Instant::now();
-    let capture_duration = Duration::from_millis(250); // Adjust as needed
+    let capture_duration = Duration::from_millis(1000);
 
     while start_time.elapsed() < capture_duration {
         if let Ok(packet) = cap.next_packet() {
@@ -50,17 +65,6 @@ pub fn listen_to_traffic() -> Result<String, String> {
                 packets.push(packet_info);
             }
         }
-        thread::sleep(Duration::from_millis(50));
-
-        // for _ in 0..10000{
-        //     if let Ok(packet) = cap.next_packet() {
-        //         if let Some(packet_info) = process_packet(&packet) {
-        //             packets.push(packet_info);
-        //         }
-        //     } else {
-        //         continue;
-        //     }
-        // }
     }
     serde_json::to_string(&packets).map_err(|e| e.to_string())
 }

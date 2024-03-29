@@ -4,11 +4,16 @@ extern crate pcap;
 extern crate pnet;
 
 mod network_monitor;
-use crate::network_monitor::monitor::listen_to_traffic;
+use tauri::Manager;
+use crate::network_monitor::monitor::init_traffic_listener;
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![listen_to_traffic])
+        .setup(|app| {
+            init_traffic_listener(app.get_window("main").expect("Failed to get main window"));
+            Ok(())
+        })
+        .invoke_handler(tauri::generate_handler![init_traffic_listener])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

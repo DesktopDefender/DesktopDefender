@@ -17,9 +17,8 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="h-full bg-gray-900">
-      <body
-        className={`${outfit.className} h-full px-24 border-DDOrange border-t-2`}
-      >
+      <div className="absolute border-DDOrange top-0 bg-slate-500 border-t-2 w-screen" />
+      <body className={`${outfit.className} h-full px-24`}>
         <Navbar />
         {children}
       </body>

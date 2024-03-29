@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
-import { listen } from "@tauri-apps/api/event";
+import { listen, emit } from "@tauri-apps/api/event";
 
 interface ArpEntry {
   ip_address: string;
@@ -13,14 +13,28 @@ interface ArpEntry {
 export default function Devices() {
   const [arpEntries, setArpEntries] = useState<ArpEntry[]>([]);
   const [isIdentifying, setIsIdentifying] = useState<boolean>(false);
+  const [message, setMessage] = useState<string>("Nothing");
 
   useEffect(() => {
+    listen_to_greet();
+
     listen("arp_table", (e) => {
       const payload = e.payload as string;
       const newEntries: ArpEntry[] = JSON.parse(payload);
       setArpEntries([...newEntries]);
     });
   }, []);
+
+  function greet() {
+    emit("greet", { name: "10.0.0.31" });
+  }
+
+  async function listen_to_greet() {
+    // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+    const unlisten = await listen("hello", (event: any) => {
+      setMessage(event.payload);
+    });
+  }
 
   async function identifyDevices() {
     setIsIdentifying(true);
@@ -57,6 +71,14 @@ export default function Devices() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
+      <div>{message}</div>
+      <button
+        type="button"
+        className="btn btn-primary drawer-button"
+        onClick={greet}
+      >
+        Greet
+      </button>
       <button
         type="button"
         className="btn btn-primary drawer-button"

@@ -2,10 +2,8 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 mod devices;
-use crate::devices::devices::{init_arp_listener, get_hostname, handle_greet_event};
+use crate::devices::devices::{init_arp_listener, get_hostname, handle_hostname_request};
 use tauri::Manager;
-
-
 
 fn main() {
   tauri::Builder::default()
@@ -16,10 +14,9 @@ fn main() {
       );
 
       let app_handle = app.app_handle().clone();
-    
-      let _event_id = app.listen_global("greet", move |event| {
-        if let Err(e) = handle_greet_event(app_handle.clone(), event.payload().map(String::from)) {
-          eprintln!("Error processing greet event: {}", e);
+      let _event_id = app.listen_global("hostname_request", move |event| {
+        if let Err(e) = handle_hostname_request(app_handle.clone(), event.payload().map(String::from)) {
+          eprintln!("Error processing hostname_request: {}", e);
         }
       });
 

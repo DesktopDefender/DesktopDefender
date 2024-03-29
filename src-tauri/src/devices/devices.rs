@@ -6,7 +6,7 @@ use std::{thread, time::Duration};
 use tauri::Window;
 use tauri::{AppHandle, Manager};
 use serde_json::error::Error as SerdeError;
-
+use std::error::Error;
 
 #[derive(Serialize, Deserialize)]
 pub struct ArpEntry {
@@ -26,69 +26,43 @@ impl Default for ArpEntry {
 }
 
 
-
-
 #[derive(Deserialize)]
-pub struct Greet {
-    name: String,
+pub struct HostnameRequest {
+    ip_address: String,
 }
 
-pub fn handle_greet_event(app_handle: AppHandle, event_payload: Option<String>) -> Result<(), SerdeError> {
-    let greet_msg: Greet = serde_json::from_str(&event_payload.unwrap())?;
-    let msg = format!("Hello {}!, You have been greeted from Rust!", greet_msg.name);
-    println!("{}", msg);
 
-    match app_handle.emit_all("hello", &msg) {
-        Ok(_) => Ok(()),
-        Err(e) => {
-            eprintln!("Failed to emit event: {}", e);
-            Ok(())
+
+pub fn resolve_hostname(ip_address: &str, app_handle: &AppHandle) -> Result<(), Box<dyn Error>> {
+    let output = Command::new("dig")
+        .args([
+            "-x", ip_address,
+            "-p", "5353",
+            "@224.0.0.251",
+            "+short"
+        ])
+        .output()?;
+
+    let response = if output.status.success() {
+        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
+        if !stdout.is_empty() {
+            stdout
+        } else {
+            "Unknown".to_string()
         }
-    }
+    } else {
+        "Unknown".to_string()
+    };
+
+    app_handle.emit_all("hostname_response", &response).map_err(Into::into)
 }
 
 
-// #[tauri::command]
-// pub fn greet(ip_address: &str, app_handle: tauri::AppHandle) {
-
-
-//     println!("greet envoked");
-
-//     let output = Command::new("dig")
-//         .args([
-//             "-x", ip_address,
-//             "-p", "5353",
-//             "@224.0.0.251",
-//             "+short"
-//         ])
-//         .output();
-
-//     match output {
-//         Ok(output) if output.status.success() => {
-//             let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-//             println!("Command output: {}", stdout);
-//             if !stdout.is_empty() {
-//                 let _res = app_handle.emit_all("greet", stdout);
-//             } else {
-//                 println!("No hostname found for IP: {}", ip_address);
-//                 let _res = app_handle.emit_all("greet", "Unknown".to_string());
-                
-//             }
-//         },
-//         Ok(output) => {
-//             let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-//             println!("dig command failed: {}", stderr);
-//             let _res = app_handle.emit_all("greet", "Unknown".to_string());
-//         }
-//         Err(e) => {
-//             println!("Failed to execute dig command: {}", e);
-//             let _res = app_handle.emit_all("greet", "Unknown".to_string());
-//         }
-//     }
-
-//     // let msg = format!("Hello, {}! You have been greeted from Rust!", name);
-//     // let _res = app_handle.emit_all("greet", msg);
-// }
+pub fn handle_hostname_request(app_handle: AppHandle, event_payload: Option<String>) -> Result<(), Box<dyn Error>> {
+    let req: HostnameRequest = serde_json::from_str(&event_payload.unwrap())?;
+    resolve_hostname(&req.ip_address, &app_handle)?;
+    Ok(())
+}
 
 
 #[tauri::command]

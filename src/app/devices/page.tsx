@@ -16,7 +16,7 @@ export default function Devices() {
   const [message, setMessage] = useState<string>("Nothing");
 
   useEffect(() => {
-    listen_to_greet();
+    listen_to_hostnames();
 
     listen("arp_table", (e) => {
       const payload = e.payload as string;
@@ -26,13 +26,13 @@ export default function Devices() {
   }, []);
 
   function greet() {
-    emit("greet", { name: "10.0.0.31" });
+    emit("hostname_request", { ip_address: "10.0.0.31" });
   }
 
-  async function listen_to_greet() {
+  async function listen_to_hostnames() {
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
-    const unlisten = await listen("hello", (event: any) => {
-      setMessage(event.payload);
+    const unlisten = await listen("hostname_response", (e: any) => {
+      setMessage(e.payload);
     });
   }
 

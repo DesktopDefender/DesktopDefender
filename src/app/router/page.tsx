@@ -1,5 +1,6 @@
 "use client";
 
+import DDText from "@/components/DDText";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
 
@@ -17,7 +18,7 @@ export default function Router() {
   return (
     <div className="border-2 flex items-center justify-center h-max">
       <div>
-        <p>{`hello, ${greet}`}</p>
+        <DDText className="text-3xl">{`hello, ${greet}`}</DDText>
         <button
           type="button"
           className="bg-slate-600 shadow-md shadow-slate-600 p-2 hover:shadow-slate-700 active:shadow-none m-4 rounded-md w-40 hover:bg-slate-700 active:bg-slate-800 text-lg h-20"

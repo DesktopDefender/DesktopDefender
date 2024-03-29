@@ -18,12 +18,12 @@ export default function Navbar() {
   };
 
   return (
-    <nav>
-      <div className="drawer">
+    <nav className="absolute top-0 left-0 bg-slate-900">
+      <div className="drawer h-screen flex items-center">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">
           <label htmlFor="my-drawer" className="btn btn-primary drawer-button">
-            Open drawer
+            Sidebar
           </label>
         </div>
 

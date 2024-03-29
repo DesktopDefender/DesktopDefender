@@ -1,3 +1,4 @@
+use super::lookup::add_ip_to_cache;
 use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::{
     ethernet::{EtherTypes, EthernetPacket},
@@ -72,7 +73,7 @@ fn listen_to_traffic() -> Result<String, String> {
 fn process_packet(packet: &pcap::Packet) -> Option<PacketInfo> {
     let ethernet_packet = EthernetPacket::new(&packet.data)?;
 
-    let (protocol, source, destination, length) = match ethernet_packet.get_ethertype() {
+    let (protocol, src, dest, length) = match ethernet_packet.get_ethertype() {
         EtherTypes::Ipv4 => {
             let ipv4_packet = Ipv4Packet::new(ethernet_packet.payload())?;
             match ipv4_packet.get_next_level_protocol() {
@@ -80,8 +81,8 @@ fn process_packet(packet: &pcap::Packet) -> Option<PacketInfo> {
                     let _tcp_packet = TcpPacket::new(ipv4_packet.payload())?;
                     (
                         "TCP".to_string(),
-                        ipv4_packet.get_source().to_string(),
-                        ipv4_packet.get_destination().to_string(),
+                        ipv4_packet.get_source(),
+                        ipv4_packet.get_destination(),
                         packet.header.len,
                     )
                 }
@@ -89,8 +90,8 @@ fn process_packet(packet: &pcap::Packet) -> Option<PacketInfo> {
                     let _udp_packet = UdpPacket::new(ipv4_packet.payload())?;
                     (
                         "UDP".to_string(),
-                        ipv4_packet.get_source().to_string(),
-                        ipv4_packet.get_destination().to_string(),
+                        ipv4_packet.get_source(),
+                        ipv4_packet.get_destination(),
                         packet.header.len,
                     )
                 }
@@ -99,6 +100,9 @@ fn process_packet(packet: &pcap::Packet) -> Option<PacketInfo> {
         }
         _ => return None,
     };
+
+    let source = add_ip_to_cache(src).unwrap_or(src.to_string());
+    let destination = add_ip_to_cache(dest).unwrap_or(dest.to_string());
 
     Some(PacketInfo {
         protocol,

@@ -13,9 +13,9 @@ const config: Config = {
         "gradient-conic":
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
-    },
-    colors: {
-      DDOrange: "#F27F15",
+      colors: {
+        DDOrange: "#F27F15",
+      },
     },
   },
   plugins: [require("daisyui")],

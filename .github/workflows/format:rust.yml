@@ -16,8 +16,6 @@ jobs:
         with:
           components: rustfmt
 
-      - name: navigate to rust folder
-        run: cd src-tauri
-        
       - name: Rustfmt Check
         run: cargo fmt --check
+        working-directory: src-tauri

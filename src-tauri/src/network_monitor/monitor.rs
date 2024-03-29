@@ -9,7 +9,7 @@ use pnet::packet::{
 use serde::{Deserialize, Serialize};
 use serde_json;
 use std::{thread, time::Duration};
-use tauri::{Manager, Window};
+use tauri::Window;
 
 #[derive(Serialize, Deserialize)]
 pub struct PacketInfo {
@@ -25,7 +25,7 @@ pub fn init_traffic_listener(window: Window) {
         match listen_to_traffic() {
             Ok(packets_json) => {
                 window
-                    .emit_all("packets", &packets_json)
+                    .emit("packets", &packets_json)
                     .expect("Failed to emit event");
             }
             Err(e) => eprintln!("Error listening to traffic: {}", e),

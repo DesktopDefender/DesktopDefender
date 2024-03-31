@@ -25,7 +25,7 @@ export default function Router() {
   }, [getRouterIp]);
 
   return (
-    <div className="border-2 flex items-center justify-center h-screen">
+    <div className="border-x-2 border-dashed flex items-center justify-center h-screen">
       <div>
         <DDText className="text-3xl">Hello, Router</DDText>
         <div className="flex justify-between">

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { listen, emit } from "@tauri-apps/api/event";
 
@@ -13,7 +13,6 @@ interface ArpEntry {
 export default function Devices() {
   const [arpEntries, setArpEntries] = useState<ArpEntry[]>([]);
   const [isIdentifying, setIsIdentifying] = useState<boolean>(false);
-  const [message, setMessage] = useState<string>("Nothing");
 
   useEffect(() => {
     listen_to_hostnames();
@@ -25,60 +24,35 @@ export default function Devices() {
     });
   }, []);
 
-  function greet() {
-    emit("hostname_request", { ip_address: "10.0.0.31" });
-  }
-
   async function listen_to_hostnames() {
     // biome-ignore lint/suspicious/noExplicitAny: <explanation>
     const unlisten = await listen("hostname_response", (e: any) => {
-      setMessage(e.payload);
+      console.log("recieved something");
+
+      const response = e.payload;
+
+      setArpEntries((currentEntries) =>
+        currentEntries.map((entry) =>
+          entry.ip_address === response.ip_address
+            ? { ...entry, hostname: response.hostname }
+            : entry,
+        ),
+      );
     });
   }
 
-  async function identifyDevices() {
-    setIsIdentifying(true);
-
-    arpEntries.forEach(async (entry, index) => {
+  function identifyDevices() {
+    console.log("sending something");
+    for (const entry of arpEntries) {
       if (entry.hostname === "Unknown") {
-        try {
-          const hostname = (await invoke("get_hostname", {
-            ipAddress: entry.ip_address,
-          })) as string;
-
-          setArpEntries((currentEntries) =>
-            currentEntries.map((e, i) =>
-              i === index ? { ...e, hostname } : e,
-            ),
-          );
-        } catch (error) {
-          console.error(
-            "Error getting hostname for IP:",
-            entry.ip_address,
-            error,
-          );
-
-          setArpEntries((currentEntries) =>
-            currentEntries.map((e, i) =>
-              i === index ? { ...e, hostname: "Failed" } : e,
-            ),
-          );
-        }
+        emit("hostname_request", { ip_address: entry.ip_address });
+        console.log("Hostname request emitted for:", entry.ip_address);
       }
-    });
-    setIsIdentifying(false);
+    }
   }
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div>{message}</div>
-      <button
-        type="button"
-        className="btn btn-primary drawer-button"
-        onClick={greet}
-      >
-        Greet
-      </button>
       <button
         type="button"
         className="btn btn-primary drawer-button"

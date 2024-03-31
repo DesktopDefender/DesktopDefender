@@ -7,6 +7,7 @@ use tauri::Window;
 use tauri::{AppHandle, Manager};
 use serde_json::error::Error as SerdeError;
 use std::error::Error;
+use serde_json::json;
 
 #[derive(Serialize, Deserialize)]
 pub struct ArpEntry {
@@ -31,19 +32,21 @@ pub struct HostnameRequest {
     ip_address: String,
 }
 
+#[derive(Serialize)]
+struct HostnameResponse {
+    ip_address: String,
+    hostname: String,
+}
 
 
 pub fn resolve_hostname(ip_address: &str, app_handle: &AppHandle) -> Result<(), Box<dyn Error>> {
+    println!("resolve_hostname");
+
     let output = Command::new("dig")
-        .args([
-            "-x", ip_address,
-            "-p", "5353",
-            "@224.0.0.251",
-            "+short"
-        ])
+        .args(["-x", ip_address, "-p", "5353", "@224.0.0.251", "+short"])
         .output()?;
 
-    let response = if output.status.success() {
+    let hostname = if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
         if !stdout.is_empty() {
             stdout
@@ -54,11 +57,16 @@ pub fn resolve_hostname(ip_address: &str, app_handle: &AppHandle) -> Result<(), 
         "Unknown".to_string()
     };
 
-    app_handle.emit_all("hostname_response", &response).map_err(Into::into)
+    let response = HostnameResponse {
+        ip_address: ip_address.to_string(),
+        hostname,
+    };
+
+    app_handle.emit_all("hostname_response", &json!(response)).map_err(Into::into)
 }
 
-
 pub fn handle_hostname_request(app_handle: AppHandle, event_payload: Option<String>) -> Result<(), Box<dyn Error>> {
+    println!("handle_hostname_request");
     let req: HostnameRequest = serde_json::from_str(&event_payload.unwrap())?;
     resolve_hostname(&req.ip_address, &app_handle)?;
     Ok(())

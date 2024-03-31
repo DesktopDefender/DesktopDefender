@@ -90,6 +90,7 @@ pub fn init_arp_listener(window: Window) {
 
 
 pub fn get_devices() -> Result<String, String> {
+    println!("get_devices");
     let output = Command::new("arp")
         .arg("-a")
         .output()

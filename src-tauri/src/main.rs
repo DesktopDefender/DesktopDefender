@@ -1,8 +1,10 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod home;
 mod devices;
 use crate::devices::devices::{init_arp_listener, get_hostname, handle_hostname_request};
+use crate::home::connection::init_connection_listener;
 use tauri::Manager;
 
 fn main() {
@@ -10,6 +12,10 @@ fn main() {
     .invoke_handler(tauri::generate_handler![get_hostname])
     .setup(|app| {
       init_arp_listener(
+        app.get_window("main").expect("Failed to get main window"),
+      );
+
+      init_connection_listener(
         app.get_window("main").expect("Failed to get main window"),
       );
 

@@ -7,6 +7,7 @@ use crate::router::find_ip;
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![find_ip::greet])
+        .invoke_handler(tauri::generate_handler![find_ip::find_ip])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

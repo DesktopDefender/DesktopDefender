@@ -5,34 +5,33 @@ import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
 
 export default function Router() {
-  const [greet, setGreet] = useState("");
+  const [routerIp, setRouterIp] = useState("");
+  const [routerIpLoading, setRouterIpLoading] = useState(false);
 
-  const greetFromRust = () => {
-    invoke<string>("greet", { name: "Rust" })
+  const getRouterIp = () => {
+    if (routerIp !== "") return;
+    setRouterIpLoading(true);
+    invoke<string>("find_ip")
       .then((result) => {
-        setGreet(result);
+        console.log(`result found: ${result}`);
+        setRouterIp(result);
       })
-      .catch(console.error);
+      .catch(console.error)
+      .finally(() => setRouterIpLoading(false));
   };
+
+  useEffect(() => {
+    getRouterIp();
+  }, [getRouterIp]);
 
   return (
     <div className="border-2 flex items-center justify-center h-screen">
       <div>
-        <DDText className="text-3xl">{`hello, ${greet}`}</DDText>
-        <button
-          type="button"
-          className="bg-slate-600 shadow-md shadow-slate-600 p-2 hover:shadow-slate-700 active:shadow-none m-4 rounded-md w-40 hover:bg-slate-700 active:bg-slate-800 text-lg h-20"
-          onClick={greetFromRust}
-        >
-          Greet from rust
-        </button>
-        <button
-          type="button"
-          className="bg-slate-600 shadow-md shadow-slate-600 p-2 hover:shadow-slate-700 active:shadow-none m-4 rounded-md w-40 hover:bg-slate-700 active:bg-slate-800 text-lg h-20"
-          onClick={() => setGreet("from TS")}
-        >
-          Greet from TS
-        </button>
+        <DDText className="text-3xl">Hello, Router</DDText>
+        <div className="flex justify-between">
+          <DDText className="">router IP:</DDText>
+          <DDText>{routerIpLoading ? "Loading..." : routerIp}</DDText>
+        </div>
       </div>
     </div>
   );

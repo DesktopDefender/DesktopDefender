@@ -1,4 +1,4 @@
-name: Frontend format check
+name: Check TSX Formatting
 on:
   push:
     branches:
@@ -6,7 +6,7 @@ on:
   pull_request:
 
 jobs:
-  Run-Format-Frontend:
+  Run-TSX-Format:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

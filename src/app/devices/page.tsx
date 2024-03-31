@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { invoke } from "@tauri-apps/api/tauri";
 import { listen, emit } from "@tauri-apps/api/event";
+import DDText from "@/components/DDText";
 
 interface ArpEntry {
   ip_address: string;

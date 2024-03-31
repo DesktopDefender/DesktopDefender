@@ -11,7 +11,6 @@ use parking_lot::Mutex;
 use std::collections::HashMap;
 use std::net::Ipv4Addr;
 use tauri::Manager;
-
 static HOSTNAME_CACHE: Lazy<Mutex<HashMap<Ipv4Addr, String>>> =
     Lazy::new(|| Mutex::new(HashMap::new()));
 

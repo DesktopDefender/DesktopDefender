@@ -1,16 +1,16 @@
 use reqwest;
+use reqwest::blocking::Client;
 use std::{thread, time::Duration};
 use tauri::Window;
-use reqwest::blocking::Client;
-
 
 #[tauri::command]
 pub fn init_connection_listener(window: Window) {
     std::thread::spawn(move || loop {
         let client = Client::new();
         let connected = check_connectivity(&client);
-        window.emit("connection_status", &connected)
-              .expect("Failed to emit event");
+        window
+            .emit("connection_status", &connected)
+            .expect("Failed to emit event");
         thread::sleep(Duration::from_secs(10));
     });
 }

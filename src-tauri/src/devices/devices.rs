@@ -1,19 +1,19 @@
-use std::str;
-use std::process::Command;
 use serde::{Deserialize, Serialize};
 use serde_json;
+use serde_json::error::Error as SerdeError;
+use serde_json::json;
+use std::error::Error;
+use std::process::Command;
+use std::str;
 use std::{thread, time::Duration};
 use tauri::Window;
 use tauri::{AppHandle, Manager};
-use serde_json::error::Error as SerdeError;
-use std::error::Error;
-use serde_json::json;
 
 #[derive(Serialize, Deserialize)]
 pub struct ArpEntry {
     pub ip_address: String,
     pub mac_address: String,
-    pub hostname: String
+    pub hostname: String,
 }
 
 impl Default for ArpEntry {
@@ -26,7 +26,6 @@ impl Default for ArpEntry {
     }
 }
 
-
 #[derive(Deserialize)]
 pub struct HostnameRequest {
     ip_address: String,
@@ -37,7 +36,6 @@ struct HostnameResponse {
     ip_address: String,
     hostname: String,
 }
-
 
 pub fn resolve_hostname(ip_address: &str, app_handle: &AppHandle) -> Result<(), Box<dyn Error>> {
     println!("resolve_hostname");
@@ -62,16 +60,20 @@ pub fn resolve_hostname(ip_address: &str, app_handle: &AppHandle) -> Result<(), 
         hostname,
     };
 
-    app_handle.emit_all("hostname_response", &json!(response)).map_err(Into::into)
+    app_handle
+        .emit_all("hostname_response", &json!(response))
+        .map_err(Into::into)
 }
 
-pub fn handle_hostname_request(app_handle: AppHandle, event_payload: Option<String>) -> Result<(), Box<dyn Error>> {
+pub fn handle_hostname_request(
+    app_handle: AppHandle,
+    event_payload: Option<String>,
+) -> Result<(), Box<dyn Error>> {
     println!("handle_hostname_request");
     let req: HostnameRequest = serde_json::from_str(&event_payload.unwrap())?;
     resolve_hostname(&req.ip_address, &app_handle)?;
     Ok(())
 }
-
 
 #[tauri::command]
 pub fn init_arp_listener(window: Window) {
@@ -87,7 +89,6 @@ pub fn init_arp_listener(window: Window) {
         thread::sleep(Duration::new(300, 0)); // 5 minutes interval
     });
 }
-
 
 pub fn get_devices() -> Result<String, String> {
     println!("get_devices");
@@ -106,27 +107,24 @@ pub fn get_devices() -> Result<String, String> {
                 let ip_address = parts[1].trim_matches('(').trim_matches(')').to_string();
                 let mac_address = parts[3].to_string();
                 if mac_address != "(incomplete)" {
-                    entries.push(ArpEntry { ip_address, mac_address, ..Default::default() });
+                    entries.push(ArpEntry {
+                        ip_address,
+                        mac_address,
+                        ..Default::default()
+                    });
                 }
             }
         }
-    } 
+    }
     serde_json::to_string(&entries).map_err(|e| e.to_string())
 }
-
-
 
 #[tauri::command]
 pub async fn get_hostname(ip_address: String) -> String {
     println!("CALLING get_hostname");
 
     let output = Command::new("dig")
-        .args([
-            "-x", &ip_address,
-            "-p", "5353",
-            "@224.0.0.251",
-            "+short"
-        ])
+        .args(["-x", &ip_address, "-p", "5353", "@224.0.0.251", "+short"])
         .output();
 
     match output {
@@ -139,7 +137,7 @@ pub async fn get_hostname(ip_address: String) -> String {
                 println!("No hostname found for IP: {}", ip_address);
                 "Unknown".to_string()
             }
-        },
+        }
         Ok(output) => {
             let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
             println!("dig command failed: {}", stderr);

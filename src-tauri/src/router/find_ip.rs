@@ -10,6 +10,7 @@ pub fn find_ip() -> String {
 }
 
 fn get_netstat_ip() -> Result<String, String> {
+    // funky bash pipe command to get a router's internal ipv4 address
     let cmd = Command::new("sh")
         .arg("-c")
         .arg("netstat -rn | grep default | head -n 1 | tr -s ' ' | cut -d ' ' -f 2")

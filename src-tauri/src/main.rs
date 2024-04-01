@@ -3,11 +3,15 @@
 
 mod router;
 use crate::router::find_ip;
+use crate::router::find_mac;
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![find_ip::greet])
-        .invoke_handler(tauri::generate_handler![find_ip::find_ip])
+        .invoke_handler(tauri::generate_handler![
+            find_mac::find_mac_address,
+            find_ip::find_ip,
+            find_ip::greet
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

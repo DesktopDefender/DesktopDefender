@@ -5,11 +5,16 @@ mod config;
 mod db_service;
 mod devices;
 mod home;
-use crate::db_service::db_service::{setup_db, get_connection};
+mod new_devices;
+
+use crate::new_devices::new_devices::get_network_info;
+
+
+use crate::db_service::db_service::setup_db;
 use crate::devices::devices::{get_hostname, handle_hostname_request, init_arp_listener};
 use crate::home::connection::init_connection_listener;
 
-use crate::config::config::OUIS_DB_PATH;
+use crate::config::config::{OUIS_DB_PATH, NETWORK_DB_PATH};
 
 use tauri::Manager;
 
@@ -17,17 +22,25 @@ use tauri::Manager;
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_hostname])
+        .invoke_handler(tauri::generate_handler![get_hostname, get_network_info])
         .setup(|app| {
             let app_handle = app.app_handle().clone();
             setup_db(&app_handle).expect("Failed to setup the database");
 
-            let db_path = app_handle
+            let ouis_path = app_handle
                 .path_resolver()
                 .resolve_resource("db/OUIS.db")
                 .expect("Failed to resolve database path");
 
-            OUIS_DB_PATH.set(db_path).expect("Failed to set DB path");
+            OUIS_DB_PATH.set(ouis_path).expect("Failed to set DB path");
+
+
+            let network_path = app_handle
+                .path_resolver()
+                .resolve_resource("db/network.db")
+                .expect("Failed to resolve database path");
+
+            NETWORK_DB_PATH.set(network_path).expect("Failed to set DB path");
 
 
             init_arp_listener(app.get_window("main").expect("Failed to get main window"));

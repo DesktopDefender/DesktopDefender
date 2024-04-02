@@ -38,7 +38,7 @@
         "providerShortName": null,
         "signingIdentity": null
       },
-      "resources": ["db/setup_db.sh", "db/OUIS.db"],
+      "resources": ["db/setup_db.sh", "db/OUIS.db", "db/network.db"],
       "shortDescription": "",
       "targets": "all",
       "windows": {

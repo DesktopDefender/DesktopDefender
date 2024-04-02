@@ -9,7 +9,7 @@ use std::{thread, time::Duration};
 use tauri::Window;
 use tauri::{AppHandle, Manager};
 
-use crate::db_service::db_service::{get_connection, get_manufacturer_by_oui};
+use crate::db_service::db_service::{get_connection_to_ouis, get_manufacturer_by_oui};
 
 
 #[derive(Serialize, Deserialize)]
@@ -104,7 +104,7 @@ pub fn get_devices() -> Result<String, String> {
 
     let mut entries = Vec::new();
 
-    let conn = get_connection().map_err(|e| e.to_string())?;
+    let conn = get_connection_to_ouis().map_err(|e| e.to_string())?;
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);

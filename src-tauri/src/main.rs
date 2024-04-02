@@ -1,14 +1,20 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
+mod config;
 mod db_service;
 mod devices;
 mod home;
-use crate::db_service::db_service::setup_db;
+use crate::db_service::db_service::{setup_db, get_connection};
 use crate::devices::devices::{get_hostname, handle_hostname_request, init_arp_listener};
 use crate::home::connection::init_connection_listener;
 
+use crate::config::config::DB_PATH;
+
 use tauri::Manager;
+
+
+
 
 fn main() {
     tauri::Builder::default()
@@ -16,6 +22,14 @@ fn main() {
         .setup(|app| {
             let app_handle = app.app_handle().clone();
             let connection = setup_db(&app_handle).expect("Failed to setup the database");
+
+            let db_path = app_handle
+                .path_resolver()
+                .resolve_resource("db/OUIS.db")
+                .expect("Failed to resolve database path");
+
+            DB_PATH.set(db_path).expect("Failed to set DB path");
+
 
             init_arp_listener(app.get_window("main").expect("Failed to get main window"));
 

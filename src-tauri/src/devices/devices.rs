@@ -1,6 +1,6 @@
+use reqwest::blocking::get;
 use serde::{Deserialize, Serialize};
 use serde_json;
-use serde_json::error::Error as SerdeError;
 use serde_json::json;
 use std::error::Error;
 use std::process::Command;
@@ -9,11 +9,15 @@ use std::{thread, time::Duration};
 use tauri::Window;
 use tauri::{AppHandle, Manager};
 
+use crate::db_service::db_service::{get_connection, get_manufacturer_by_oui};
+
+
 #[derive(Serialize, Deserialize)]
 pub struct ArpEntry {
     pub ip_address: String,
     pub mac_address: String,
     pub hostname: String,
+    pub manufacturer: String,
 }
 
 impl Default for ArpEntry {
@@ -22,6 +26,7 @@ impl Default for ArpEntry {
             ip_address: Default::default(),
             mac_address: Default::default(),
             hostname: "Unknown".to_string(),
+            manufacturer: Default::default()
         }
     }
 }
@@ -93,11 +98,15 @@ pub fn init_arp_listener(window: Window) {
 pub fn get_devices() -> Result<String, String> {
     println!("get_devices");
     let output = Command::new("arp")
-        .arg("-a")
+        .arg("-an")
         .output()
         .map_err(|e| e.to_string())?;
 
     let mut entries = Vec::new();
+
+    println!("get_devices, getting connection");
+
+    let conn = get_connection().map_err(|e| e.to_string())?;
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -106,10 +115,19 @@ pub fn get_devices() -> Result<String, String> {
             if parts.len() > 3 && parts[1].starts_with('(') && parts[1].ends_with(')') {
                 let ip_address = parts[1].trim_matches('(').trim_matches(')').to_string();
                 let mac_address = parts[3].to_string();
+
                 if mac_address != "(incomplete)" {
+
+                    let oui = mac_address.replace(":", "").to_lowercase()[..6].to_string();
+
+                    let manufacturer = get_manufacturer_by_oui(&conn, &oui)
+                        .unwrap_or_else(|_| "Unknown".to_string());
+
+
                     entries.push(ArpEntry {
                         ip_address,
                         mac_address,
+                        manufacturer,
                         ..Default::default()
                     });
                 }
@@ -118,6 +136,9 @@ pub fn get_devices() -> Result<String, String> {
     }
     serde_json::to_string(&entries).map_err(|e| e.to_string())
 }
+
+
+
 
 #[tauri::command]
 pub async fn get_hostname(ip_address: String) -> String {

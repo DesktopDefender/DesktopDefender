@@ -14,15 +14,21 @@ export function PacketTable() {
   const [packets, setPackets] = useState<PacketInfo[]>([]);
 
   useEffect(() => {
-    listen("packets", (e) => {
+    const unlisten = listen("packets", (e) => {
       const payload = e.payload as string;
       const newPackets: PacketInfo[] = JSON.parse(payload);
-      setPackets((currentPackets) => [...currentPackets, ...newPackets]);
+
+      newPackets.reverse();
+      setPackets((currentPackets) => [...newPackets, ...currentPackets]);
     });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
   }, []);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-4">
+    <div className="flex min-h-screen flex-col items-center justify-between p-4">
       <div className="overflow-x-auto">
         <table className="table">
           <thead>
@@ -34,12 +40,14 @@ export function PacketTable() {
             </tr>
           </thead>
         </table>
-        <div className="overflow-y-auto" style={{ maxHeight: "200px" }}>
+        <div
+          className="overflow-y-auto no-scrollbar"
+          style={{ maxHeight: "200px" }}
+        >
           <table className="table">
             <tbody>
-              {packets.map((packet, index) => (
-                <tr className="bg-base-200">
-                  <th>{index}</th>
+              {packets.map((packet) => (
+                <tr className="animate-fadeIn">
                   <td>{packet.protocol}</td>
                   <td>{packet.source}</td>
                   <td>{packet.destination}</td>
@@ -50,6 +58,6 @@ export function PacketTable() {
           </table>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

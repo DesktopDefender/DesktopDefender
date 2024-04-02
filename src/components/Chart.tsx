@@ -51,7 +51,7 @@ export const RealTimeChart = () => {
     labels: [],
     datasets: [
       {
-        label: "Real-Time Data",
+        label: "Packet Traffic",
         data: [],
         borderColor: "rgb(75, 192, 192)",
         tension: 0.2,
@@ -60,7 +60,7 @@ export const RealTimeChart = () => {
   });
 
   useEffect(() => {
-    listen("packets", (e) => {
+    const unlisten = listen("packets", (e) => {
       const payload = e.payload as string;
       const newPackets: PacketInfo[] = JSON.parse(payload);
       const timestamp = new Date().toLocaleTimeString(); // Get current time as a string
@@ -70,6 +70,10 @@ export const RealTimeChart = () => {
         { count: newPackets.length, timestamp: timestamp },
       ]);
     });
+
+    return () => {
+      unlisten.then((f) => f());
+    };
   }, []);
 
   useEffect(() => {
@@ -78,7 +82,7 @@ export const RealTimeChart = () => {
         labels: packetRate.map((rate) => rate.timestamp),
         datasets: [
           {
-            ...data.datasets[0], // Assuming you have only one dataset
+            ...data.datasets[0],
             data: packetRate.map((rate) => rate.count),
           },
         ],
@@ -86,13 +90,13 @@ export const RealTimeChart = () => {
 
       if (updatedData.labels.length > 20) {
         updatedData.labels.shift();
-        updatedData.datasets.forEach((dataset) => dataset.data.shift());
+        updatedData.datasets[0].data.shift();
       }
       setData(updatedData);
     }, 1000);
 
-    return () => clearInterval(interval); // Cleanup on component unmount
-  }, [packetRate]);
+    return () => clearInterval(interval);
+  }, [packetRate, data.datasets[0]]);
 
   return <Line data={data} />;
 };

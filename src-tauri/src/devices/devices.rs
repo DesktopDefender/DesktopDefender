@@ -91,20 +91,18 @@ pub fn init_arp_listener(window: Window) {
             }
             Err(e) => eprintln!("Error listening to traffic: {}", e),
         }
-        thread::sleep(Duration::new(300, 0)); // 5 minutes interval
+        thread::sleep(Duration::new(10, 0)); // 5 minutes interval
     });
 }
 
+
 pub fn get_devices() -> Result<String, String> {
-    println!("get_devices");
     let output = Command::new("arp")
-        .arg("-an")
+        .arg("-a")
         .output()
         .map_err(|e| e.to_string())?;
 
     let mut entries = Vec::new();
-
-    println!("get_devices, getting connection");
 
     let conn = get_connection().map_err(|e| e.to_string())?;
 
@@ -122,7 +120,6 @@ pub fn get_devices() -> Result<String, String> {
 
                     let manufacturer = get_manufacturer_by_oui(&conn, &oui)
                         .unwrap_or_else(|_| "Unknown".to_string());
-
 
                     entries.push(ArpEntry {
                         ip_address,

@@ -11,7 +11,6 @@ use tauri::{AppHandle, Manager};
 
 use crate::db_service::db_service::{get_connection_to_ouis, get_manufacturer_by_oui};
 
-
 #[derive(Serialize, Deserialize)]
 pub struct ArpEntry {
     pub ip_address: String,
@@ -26,7 +25,7 @@ impl Default for ArpEntry {
             ip_address: Default::default(),
             mac_address: Default::default(),
             hostname: "Unknown".to_string(),
-            manufacturer: Default::default()
+            manufacturer: Default::default(),
         }
     }
 }
@@ -95,7 +94,6 @@ pub fn init_arp_listener(window: Window) {
     });
 }
 
-
 pub fn get_devices() -> Result<String, String> {
     let output = Command::new("arp")
         .arg("-a")
@@ -115,7 +113,6 @@ pub fn get_devices() -> Result<String, String> {
                 let mac_address = parts[3].to_string();
 
                 if mac_address != "(incomplete)" {
-
                     let oui = mac_address.replace(":", "").to_lowercase()[..6].to_string();
 
                     let manufacturer = get_manufacturer_by_oui(&conn, &oui)
@@ -133,9 +130,6 @@ pub fn get_devices() -> Result<String, String> {
     }
     serde_json::to_string(&entries).map_err(|e| e.to_string())
 }
-
-
-
 
 #[tauri::command]
 pub async fn get_hostname(ip_address: String) -> String {

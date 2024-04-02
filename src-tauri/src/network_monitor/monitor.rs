@@ -1,4 +1,4 @@
-use super::lookup::add_ip_to_cache;
+use super::lookup::add_ip_to_set;
 use pnet::packet::ip::IpNextHeaderProtocols;
 use pnet::packet::{
     ethernet::{EtherTypes, EthernetPacket},
@@ -21,21 +21,23 @@ pub struct PacketInfo {
 }
 
 #[tauri::command]
-pub fn init_traffic_listener(window: Window) {
-    std::thread::spawn(move || loop {
-        match listen_to_traffic() {
-            Ok(packets_json) => {
-                window
-                    .emit("packets", &packets_json)
-                    .expect("Failed to emit event");
+pub fn init_traffic_emitter(window: Window) {
+    tauri::async_runtime::spawn(async move {
+        loop {
+            match listen_to_traffic().await {
+                Ok(packets_json) => {
+                    window
+                        .emit("packets", &packets_json)
+                        .expect("Failed to emit event");
+                }
+                Err(e) => eprintln!("Error listening to traffic: {}", e),
             }
-            Err(e) => eprintln!("Error listening to traffic: {}", e),
+            thread::sleep(Duration::from_millis(100));
         }
-        thread::sleep(Duration::from_millis(100));
     });
 }
 
-fn listen_to_traffic() -> Result<String, String> {
+async fn listen_to_traffic() -> Result<String, String> {
     let devices = pcap::Device::list().map_err(|e| e.to_string())?;
 
     if devices.is_empty() {
@@ -62,7 +64,7 @@ fn listen_to_traffic() -> Result<String, String> {
 
     while start_time.elapsed() < capture_duration {
         if let Ok(packet) = cap.next_packet() {
-            if let Some(packet_info) = process_packet(&packet) {
+            if let Some(packet_info) = process_packet(&packet).await {
                 packets.push(packet_info);
             }
         }
@@ -70,7 +72,7 @@ fn listen_to_traffic() -> Result<String, String> {
     serde_json::to_string(&packets).map_err(|e| e.to_string())
 }
 
-fn process_packet(packet: &pcap::Packet) -> Option<PacketInfo> {
+async fn process_packet(packet: &pcap::Packet<'_>) -> Option<PacketInfo> {
     let ethernet_packet = EthernetPacket::new(&packet.data)?;
 
     let (protocol, src, dest, length) = match ethernet_packet.get_ethertype() {
@@ -101,8 +103,8 @@ fn process_packet(packet: &pcap::Packet) -> Option<PacketInfo> {
         _ => return None,
     };
 
-    let source = add_ip_to_cache(src).unwrap_or(src.to_string());
-    let destination = add_ip_to_cache(dest).unwrap_or(dest.to_string());
+    let source = add_ip_to_set(src).await.unwrap_or(src.to_string());
+    let destination = add_ip_to_set(dest).await.unwrap_or(dest.to_string());
 
     Some(PacketInfo {
         protocol,

@@ -6,18 +6,25 @@ extern crate pnet;
 
 mod network_monitor;
 use crate::network_monitor::monitor;
+use network_monitor::info::Info;
 use once_cell::sync::Lazy;
-use parking_lot::Mutex;
-use std::collections::HashMap;
+// use parking_lot::Mutex;
+use std::collections::{HashMap, HashSet};
 use std::net::Ipv4Addr;
 use tauri::Manager;
-static HOSTNAME_CACHE: Lazy<Mutex<HashMap<Ipv4Addr, String>>> =
-    Lazy::new(|| Mutex::new(HashMap::new()));
+use tokio::sync::Mutex;
+
+static IP_CACHE: Lazy<Mutex<HashMap<String, Info>>> = Lazy::new(|| Mutex::new(HashMap::new()));
+
+static IP_SET: Lazy<Mutex<HashSet<Ipv4Addr>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 fn main() {
     tauri::Builder::default()
         .setup(|app| {
-            monitor::init_traffic_listener(
+            monitor::init_traffic_emitter(
+                app.get_window("main").expect("Failed to get main window"),
+            );
+            network_monitor::info::init_info_emitter(
                 app.get_window("main").expect("Failed to get main window"),
             );
             Ok(())

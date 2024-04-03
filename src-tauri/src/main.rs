@@ -7,7 +7,9 @@ mod home;
 
 use crate::devices::devices::{get_network_info, get_router_info, initalize_devices};
 
-use crate::db_service::db_service::{setup_network_db, setup_ouis_db};
+use crate::db_service::db_service::{
+    client_get_manufacturer_by_oui, setup_network_db, setup_ouis_db,
+};
 use crate::home::connection::init_connection_listener;
 
 use devices::devices::handle_hostname_request;
@@ -18,7 +20,8 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             get_router_info,
             initalize_devices,
-            get_network_info
+            get_network_info,
+            client_get_manufacturer_by_oui
         ])
         .setup(|app| {
             setup_network_db();

@@ -1,10 +1,10 @@
+use chrono::prelude::*;
+use csv::ReaderBuilder;
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
-use csv::ReaderBuilder;
 use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
-use chrono::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Network {
@@ -27,8 +27,8 @@ pub struct Device {
 pub fn setup_network_db() {
     /*
         Path needs to be set to src-tauri. Trying to resolve paths nested inside src-tauri for example src-tauri/db-stuff
-        results in needing to include files in tauri.conf.json resources, code for resolving the paths and storing the paths 
-        in global variables were they can be accessed. Also the file would need to be created beforehand to reference it in 
+        results in needing to include files in tauri.conf.json resources, code for resolving the paths and storing the paths
+        in global variables were they can be accessed. Also the file would need to be created beforehand to reference it in
         tauri.conf.json resources.
         Storing it in src-tauri is the easiest solution for now.
     */
@@ -65,8 +65,8 @@ pub fn setup_network_db() {
 pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
     /*
         Path needs to be set to src-tauri. Trying to resolve paths nested inside src-tauri for example src-tauri/db-stuff
-        results in needing to include files in tauri.conf.json resources, code for resolving the paths and storing the paths 
-        in global variables were they can be accessed. Also the file would need to be created beforehand to reference it in 
+        results in needing to include files in tauri.conf.json resources, code for resolving the paths and storing the paths
+        in global variables were they can be accessed. Also the file would need to be created beforehand to reference it in
         tauri.conf.json resources.
         Storing it in src-tauri is the easiest solution for now.
     */
@@ -257,4 +257,40 @@ pub fn get_manufacturer_by_oui(conn: &Connection, mac_address: &str) -> Result<(
     } else {
         Err(rusqlite::Error::QueryReturnedNoRows)
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OuiResponse {
+    pub manufacturer: String,
+    pub country: String,
+}
+
+#[tauri::command]
+pub fn client_get_manufacturer_by_oui(mac_address: &str) -> Result<String, String> {
+    let ouis_conn = Connection::open("ouis.db").map_err(|e| e.to_string())?;
+
+    let oui = mac_address.replace(":", "").to_lowercase()[..6].to_string();
+    let oui_upper = oui.to_uppercase();
+
+    let mut stmt = ouis_conn
+        .prepare("SELECT manufacturer, country FROM manufacturers WHERE oui = ?1")
+        .map_err(|e| e.to_string())?;
+    let mut rows = stmt.query(params![oui_upper]).map_err(|e| e.to_string())?;
+
+    let response = if let Some(row) = rows.next().map_err(|e| e.to_string())? {
+        let manufacturer: String = row.get(0).unwrap_or_else(|_| "Unknown".to_string());
+        let country: String = row.get(1).unwrap_or_else(|_| "Unknown".to_string());
+
+        OuiResponse {
+            manufacturer,
+            country,
+        }
+    } else {
+        OuiResponse {
+            manufacturer: "Unknown".to_string(),
+            country: "Unknown".to_string(),
+        }
+    };
+
+    serde_json::to_string(&response).map_err(|e| e.to_string())
 }

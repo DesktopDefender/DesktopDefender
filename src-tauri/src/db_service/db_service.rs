@@ -24,7 +24,13 @@ pub struct Device {
 }
 
 pub fn setup_network_db() {
-    println!("creating network.db");
+    /*
+        Path needs to be set to src-tauri. Trying to resolve paths nested inside src-tauri for example src-tauri/db-stuff
+        results in needing to include files in tauri.conf.json resources, code for resolving the paths and storing the paths 
+        in global variables were they can be accessed. Also the file would need to be created beforehand to reference it in 
+        tauri.conf.json resources.
+        Storing it in src-tauri is the easiest solution for now.
+    */
     let conn = Connection::open("network.db").expect("Failed to open database");
 
     conn.execute(
@@ -55,7 +61,13 @@ pub fn setup_network_db() {
 }
 
 pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
-    println!("creating ouis.db");
+    /*
+        Path needs to be set to src-tauri. Trying to resolve paths nested inside src-tauri for example src-tauri/db-stuff
+        results in needing to include files in tauri.conf.json resources, code for resolving the paths and storing the paths 
+        in global variables were they can be accessed. Also the file would need to be created beforehand to reference it in 
+        tauri.conf.json resources.
+        Storing it in src-tauri is the easiest solution for now.
+    */
 
     let mut conn = Connection::open("ouis.db")?;
 
@@ -70,13 +82,13 @@ pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
 
     let file = File::open("ouis.csv")?;
     let mut rdr = ReaderBuilder::new()
-        .has_headers(false) // Set to true if your CSV file has headers
+        .has_headers(false)
         .from_reader(BufReader::new(file));
 
     let tx = conn.transaction()?;
     for result in rdr.records() {
         let record = result?;
-        // The CSV crate already handles the removal of quotes if the fields are quoted.
+
         let oui = record.get(0).ok_or("missing field 'oui'")?;
         let manufacturer = record.get(1).ok_or("missing field 'manufacturer'")?;
         let country = record.get(2).ok_or("missing field 'country'")?;

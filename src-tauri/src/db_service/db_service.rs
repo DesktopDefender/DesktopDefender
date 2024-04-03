@@ -1,11 +1,11 @@
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
-use std::error::Error;
-use std::process::Command;
-use tauri::AppHandle;
 
 use crate::config::config::{NETWORK_DB_PATH, OUIS_DB_PATH};
-
+use csv::ReaderBuilder;
+use std::error::Error;
+use std::fs::File;
+use std::io::BufReader;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Network {
@@ -24,22 +24,72 @@ pub struct Device {
     pub country: String,
 }
 
-pub fn get_connection_to_ouis() -> Result<Connection, Box<dyn Error>> {
-    if let Some(path) = OUIS_DB_PATH.get() {
-        Connection::open(path).map_err(|e| e.into())
-    } else {
-        println!("Database path is not set yet.");
-        Err("Database path is not set yet.".into())
-    }
+pub fn setup_network_db() {
+    println!("creating network.db");
+    let conn = Connection::open("network.db").expect("Failed to open database");
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS networks (
+            router_mac TEXT PRIMARY KEY,
+            ip_address TEXT,
+            manufacturer TEXT DEFAULT 'Unknown',
+            country TEXT DEFAULT 'Unknown'
+        )",
+        [],
+    )
+    .expect("Failed to create networks table");
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS devices (
+            mac_address TEXT,
+            router_mac TEXT,
+            ip_address TEXT,
+            hostname TEXT DEFAULT 'Unknown',
+            manufacturer TEXT DEFAULT 'Unknown',
+            country TEXT DEFAULT 'Unknown',
+            PRIMARY KEY (mac_address, router_mac),
+            FOREIGN KEY (router_mac) REFERENCES networks(router_mac)
+        )",
+        [],
+    )
+    .expect("Failed to create devices table");
 }
 
-pub fn get_connection_to_network() -> Result<Connection, Box<dyn Error>> {
-    if let Some(path) = NETWORK_DB_PATH.get() {
-        Connection::open(path).map_err(|e| e.into())
-    } else {
-        println!("Database path is not set yet.");
-        Err("Database path is not set yet.".into())
+pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
+    println!("creating ouis.db");
+
+    let mut conn = Connection::open("ouis.db")?;
+
+    conn.execute(
+        "CREATE TABLE IF NOT EXISTS manufacturers (
+            oui TEXT PRIMARY KEY,
+            manufacturer TEXT,
+            country TEXT
+        )",
+        [],
+    )?;
+
+    let file = File::open("ouis.csv")?;
+    let mut rdr = ReaderBuilder::new()
+        .has_headers(false) // Set to true if your CSV file has headers
+        .from_reader(BufReader::new(file));
+
+    let tx = conn.transaction()?;
+    for result in rdr.records() {
+        let record = result?;
+        // The CSV crate already handles the removal of quotes if the fields are quoted.
+        let oui = record.get(0).ok_or("missing field 'oui'")?;
+        let manufacturer = record.get(1).ok_or("missing field 'manufacturer'")?;
+        let country = record.get(2).ok_or("missing field 'country'")?;
+
+        tx.execute(
+            "INSERT INTO manufacturers (oui, manufacturer, country) VALUES (?1, ?2, ?3)",
+            params![oui, manufacturer, country],
+        )?;
     }
+    tx.commit()?;
+
+    Ok(())
 }
 
 pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<Vec<Device>> {
@@ -64,8 +114,10 @@ pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<Vec<De
     Ok(devices)
 }
 
-
-pub fn get_network(conn: &rusqlite::Connection, router_mac: &str) -> Result<Option<Network>, rusqlite::Error> {
+pub fn get_network(
+    conn: &rusqlite::Connection,
+    router_mac: &str,
+) -> Result<Option<Network>, rusqlite::Error> {
     rusqlite::OptionalExtension::optional(conn.query_row(
         "SELECT router_mac, ip_address, manufacturer, country FROM networks WHERE router_mac = ?1",
         rusqlite::params![router_mac],
@@ -80,10 +132,13 @@ pub fn get_network(conn: &rusqlite::Connection, router_mac: &str) -> Result<Opti
     ))
 }
 
-
-
-pub fn add_to_networks_table(conn: &Connection, router_mac: &str, ip_address: &str, manufacturer: &str, country: &str) -> Result<()> {
-
+pub fn add_to_networks_table(
+    conn: &Connection,
+    router_mac: &str,
+    ip_address: &str,
+    manufacturer: &str,
+    country: &str,
+) -> Result<()> {
     println!("add_to_networks_table");
 
     let exists: bool = conn.query_row(
@@ -106,9 +161,14 @@ pub fn add_to_networks_table(conn: &Connection, router_mac: &str, ip_address: &s
     Ok(())
 }
 
-
-
-pub fn add_to_device_table(conn: &Connection, mac_address: &str, ip_address: &str, manufacturer: &str, country: &str, router_mac: &str) -> Result<()> {
+pub fn add_to_device_table(
+    conn: &Connection,
+    mac_address: &str,
+    ip_address: &str,
+    manufacturer: &str,
+    country: &str,
+    router_mac: &str,
+) -> Result<()> {
     if mac_address == router_mac {
         println!("Skipped adding device as it matches router MAC");
         return Ok(());
@@ -130,12 +190,16 @@ pub fn add_to_device_table(conn: &Connection, mac_address: &str, ip_address: &st
             rusqlite::params![mac_address, router_mac, ip_address, manufacturer, country, "Unknown"],
         )?;
     }
-    
+
     Ok(())
 }
 
-
-pub fn add_hostname(conn: &Connection, mac_address: &str, router_mac: &str, new_hostname: &str) -> Result<()> {
+pub fn add_hostname(
+    conn: &Connection,
+    mac_address: &str,
+    router_mac: &str,
+    new_hostname: &str,
+) -> Result<()> {
     println!("add_hostname");
 
     let exists: bool = conn.query_row(
@@ -162,37 +226,12 @@ pub fn add_hostname(conn: &Connection, mac_address: &str, router_mac: &str, new_
     Ok(())
 }
 
-
-pub fn setup_db(app: &AppHandle) -> Result<Connection, Box<dyn Error>> {
-    let script_path = app
-        .path_resolver()
-        .resolve_resource("db/setup_db.sh")
-        .expect("failed to resolve resource");
-
-    let script_status = Command::new("sh").arg(script_path).status()?;
-
-    if !script_status.success() {
-        eprintln!(
-            "Failed to execute setup script. Exit code: {:?}",
-            script_status.code()
-        );
-        return Err("Failed to setup database".into());
-    }
-
-    let db_path = app
-        .path_resolver()
-        .resolve_resource("db/OUIS.db")
-        .expect("failed to resolve resource");
-
-    Connection::open(db_path).map_err(|e| e.into())
-}
-
 pub fn get_manufacturer_by_oui(conn: &Connection, mac_address: &str) -> Result<(String, String)> {
-
     let oui = mac_address.replace(":", "").to_lowercase()[..6].to_string();
     let oui_upper = oui.to_uppercase();
 
-    let mut stmt = conn.prepare("SELECT manufacturer, country FROM manufacturers WHERE oui = ?1")?;
+    let mut stmt =
+        conn.prepare("SELECT manufacturer, country FROM manufacturers WHERE oui = ?1")?;
     let mut rows = stmt.query(params![oui_upper])?;
 
     if let Some(row) = rows.next()? {

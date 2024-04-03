@@ -1,3 +1,4 @@
+use rusqlite::Connection;
 use serde::Deserialize;
 use serde_json::to_string;
 use std::error::Error;
@@ -13,8 +14,8 @@ use crate::db_service::db_service::{
 
 #[tauri::command]
 pub fn get_router_info() -> Result<String, String> {
-    let network_conn = get_connection_to_network().map_err(|e| e.to_string())?;
-    let ouis_conn = get_connection_to_ouis().map_err(|e| e.to_string())?;
+    let network_conn = Connection::open("network.db").expect("Failed to open database");
+    let ouis_conn = Connection::open("ouis.db").expect("Failed to open database");
 
     let ip_output = Command::new("sh")
         .arg("-c")
@@ -52,12 +53,7 @@ pub fn get_router_info() -> Result<String, String> {
         Some(network) => network,
         None => {
             let manufacturer_country = get_manufacturer_by_oui(&ouis_conn, &mac_address)
-                .unwrap_or_else(|_| {
-                    (
-                        "Unknown".to_string(),
-                        "Unknown".to_string(),
-                    )
-                });
+                .unwrap_or_else(|_| ("Unknown".to_string(), "Unknown".to_string()));
             let (manufacturer, country) = manufacturer_country;
             add_to_networks_table(
                 &network_conn,
@@ -73,15 +69,14 @@ pub fn get_router_info() -> Result<String, String> {
         }
     };
 
-
     to_string(&network).map_err(|e| e.to_string())
 }
 
 // TODO PORT SCAN, ONLY NEEDS ON LOAD
 #[tauri::command]
 pub fn initalize_devices(router_mac: &str) -> Result<String, String> {
-    let network_conn = get_connection_to_network().map_err(|e| e.to_string())?;
-    let ouis_conn = get_connection_to_ouis().map_err(|e| e.to_string())?;
+    let network_conn = Connection::open("network.db").expect("Failed to open database");
+    let ouis_conn = Connection::open("ouis.db").expect("Failed to open database");
 
     let arp_entries = get_arp_table().map_err(|e| e.to_string())?;
     for entry in arp_entries {
@@ -106,17 +101,15 @@ pub fn initalize_devices(router_mac: &str) -> Result<String, String> {
     }
 }
 
-
 #[tauri::command]
 pub fn get_network_info(router_mac: &str) -> Result<String, String> {
-    let network_conn = get_connection_to_network().map_err(|e| e.to_string())?;
+    let network_conn = Connection::open("network.db").expect("Failed to open database");
 
     match get_network_devices(&network_conn, router_mac) {
         Ok(devices) => serde_json::to_string(&devices).map_err(|e| e.to_string()),
         Err(e) => Err(e.to_string()),
     }
 }
-
 
 pub struct ArpEntry {
     pub ip_address: String,
@@ -166,42 +159,39 @@ pub fn handle_hostname_request(
     Ok(())
 }
 
-
 pub fn resolve_network_hostnames(router_mac: &str, app_handle: &AppHandle) {
     println!("resolve_hostname, router_mac: {}", router_mac);
 
-    let mut found_hostname = true;
+    let network_conn = Connection::open("network.db").expect("Failed to open database");
 
-    match get_connection_to_network() {
-        Ok(network_conn) => match get_network_devices(&network_conn, router_mac) {
-            Ok(devices) => {
-                for device in devices {
-                    if device.hostname == "Unknown" {
-                        let new_hostname = resolve_hostname(&device.ip_address);
-                        if new_hostname != "Unknown" {
-                            println!("{:?} --- Hostname found {}", device, new_hostname);
-                            let _ = add_hostname(
-                                &network_conn,
-                                &device.mac_address,
-                                router_mac,
-                                &new_hostname,
-                            );
+    match get_network_devices(&network_conn, router_mac) {
+        Ok(devices) => {
+            let mut found_hostname = false;
 
-                            found_hostname = true;
-                        }
+            for device in devices {
+                if device.hostname == "Unknown" {
+                    let new_hostname = resolve_hostname(&device.ip_address);
+                    if new_hostname != "Unknown" {
+                        println!("{:?} --- Hostname found {}", device, new_hostname);
+                        let _ = add_hostname(
+                            &network_conn,
+                            &device.mac_address,
+                            router_mac,
+                            &new_hostname,
+                        );
+
+                        found_hostname = true;
                     }
                 }
             }
-            Err(e) => println!("Error fetching devices: {}", e.to_string()),
-        },
-        Err(e) => println!("Error establishing network connection: {}", e.to_string()),
-    }
 
-  
-    if found_hostname {
-        if let Err(e) = app_handle.emit_all("hostname_found", ()) {
-            eprintln!("Error emitting 'hostname_found': {:?}", e);
+            if found_hostname {
+                if let Err(e) = app_handle.emit_all("hostname_found", ()) {
+                    eprintln!("Error emitting 'hostname_found': {:?}", e);
+                }
+            }
         }
+        Err(e) => println!("Error fetching devices: {}", e.to_string()),
     }
 }
 

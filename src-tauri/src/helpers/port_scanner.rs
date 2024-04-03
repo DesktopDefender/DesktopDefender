@@ -8,9 +8,22 @@ use threadpool::ThreadPool;
 // Code from https://github.com/kristoferfannar/port_scanner,
 // which was initially developed specifically for this project
 
+/*
+Given an ip address and a vector of ports,
+returns a subset of those ports which could be connected to
+If the port list is empty, the method will try all ports it wants to.
+*/
 #[tauri::command]
-pub fn find_open_ports(ip: &str, ports: Vec<i32>) -> Vec<i32> {
+pub fn find_open_ports(ip: &str, in_ports: Vec<i32>) -> Vec<i32> {
+    let ports;
     let mut open_ports: Vec<i32> = Vec::new();
+
+    if in_ports.len() == 0 {
+        println!("No ports provided, generating...");
+        ports = generate_ports();
+    } else {
+        ports = in_ports.clone();
+    }
 
     // create a channel for adding ports in a vector on the main thread
     // connector threads will add ports to the channel if they are open
@@ -48,6 +61,16 @@ pub fn find_open_ports(ip: &str, ports: Vec<i32>) -> Vec<i32> {
     }
 
     return open_ports;
+}
+
+fn generate_ports() -> Vec<i32> {
+    let mut generated_ports: Vec<i32> = Vec::new();
+
+    for i in 1..10000 {
+        generated_ports.push(i);
+    }
+
+    return generated_ports;
 }
 
 fn port_is_open(host: &str, port: &str) -> bool {

@@ -27,7 +27,6 @@ pub fn get_router_info() -> Result<String, String> {
         .unwrap()
         .trim()
         .to_string();
-    println!("Router IP: {}", router_ip);
 
     let arp_output = Command::new("arp")
         .arg("-an")
@@ -47,7 +46,6 @@ pub fn get_router_info() -> Result<String, String> {
     }
 
     let mac_address = mac_address_opt.ok_or("MAC address not found")?;
-    println!("Router MAC: {}", mac_address);
 
     let network = match get_network(&network_conn, &mac_address).map_err(|e| e.to_string())? {
         Some(network) => network,
@@ -72,27 +70,56 @@ pub fn get_router_info() -> Result<String, String> {
     to_string(&network).map_err(|e| e.to_string())
 }
 
+fn is_valid_device_ip(device_ip: &str, router_ip: &str) -> bool {
+    let router_prefix = router_ip
+        .split('.')
+        .take(2)
+        .collect::<Vec<&str>>()
+        .join(".");
+    let device_prefix = device_ip
+        .split('.')
+        .take(2)
+        .collect::<Vec<&str>>()
+        .join(".");
+
+    if router_prefix != device_prefix {
+        return false;
+    }
+
+    // check if broadcast
+    if device_ip.ends_with(".255") {
+        return false;
+    }
+
+    true
+}
+
 // TODO PORT SCAN, ONLY NEEDS ON LOAD
 #[tauri::command]
-pub fn initalize_devices(router_mac: &str) -> Result<String, String> {
+pub fn initalize_devices(router_mac: &str, router_ip: &str) -> Result<String, String> {
     let network_conn = Connection::open("network.db").expect("Failed to open database");
     let ouis_conn = Connection::open("ouis.db").expect("Failed to open database");
 
     let arp_entries = get_arp_table().map_err(|e| e.to_string())?;
-    for entry in arp_entries {
-        let manufacturer_country = get_manufacturer_by_oui(&ouis_conn, &entry.mac_address)
-            .unwrap_or_else(|_| ("Unknown".to_string(), "Unknown".to_string()));
-        let (manufacturer, country) = manufacturer_country;
 
-        add_to_device_table(
-            &network_conn,
-            &entry.mac_address,
-            &entry.ip_address,
-            &manufacturer,
-            &country,
-            router_mac,
-        )
-        .map_err(|e| e.to_string())?;
+    for entry in arp_entries {
+        if is_valid_device_ip(&entry.ip_address, router_ip) {
+            let manufacturer_country = get_manufacturer_by_oui(&ouis_conn, &entry.mac_address)
+                .unwrap_or_else(|_| ("Unknown".to_string(), "Unknown".to_string()));
+            let (manufacturer, country) = manufacturer_country;
+
+            add_to_device_table(
+                &network_conn,
+                &entry.mac_address,
+                &entry.ip_address,
+                &manufacturer,
+                &country,
+                router_mac,
+            )
+            .map_err(|e| e.to_string())?;
+        } else {
+            println!("not a valid device ip {}", entry.ip_address);
+        }
     }
 
     match get_network_devices(&network_conn, router_mac) {

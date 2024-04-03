@@ -31,7 +31,7 @@ export default function Devices() {
         const network: Network = JSON.parse(response as string);
         setNetwork(network);
 
-        initalize_devices(network.mac_address);
+        initalize_devices(network.mac_address, network.ip_address);
       })
       .catch((error) =>
         console.error("Error fetching network devices:", error),
@@ -44,8 +44,8 @@ export default function Devices() {
     });
   }, [network?.mac_address]);
 
-  function initalize_devices(routerMac: string) {
-    invoke("initalize_devices", { routerMac: routerMac })
+  function initalize_devices(router_mac: string, router_ip: string) {
+    invoke("initalize_devices", { routerMac: router_mac, routerIp: router_ip })
       .then((response) => {
         const devicesArray: Device[] = JSON.parse(response as string);
         setDevices(devicesArray);
@@ -55,7 +55,7 @@ export default function Devices() {
         console.error("Error fetching network devices:", error),
       );
 
-    emit("hostname_request", { router_mac: routerMac });
+    emit("hostname_request", { router_mac: router_mac });
   }
 
   function get_network_info(routerMac: string) {

@@ -5,8 +5,6 @@ import { emit } from "@tauri-apps/api/event";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 
-
-
 interface Network {
   mac_address: string;
   ip_address: string;
@@ -22,21 +20,21 @@ interface Device {
   country: string;
 }
 
-
 export default function Devices() {
-
   const [network, setNetwork] = useState<Network | undefined>(undefined);
   const [devices, setDevices] = useState<Device[]>([]);
 
   useEffect(() => {
-    invoke('get_router_info')
+    invoke("get_router_info")
       .then((response) => {
         const network: Network = JSON.parse(response as string);
         setNetwork(network);
-   
+
         initalize_devices(network.mac_address);
       })
-      .catch((error) => console.error('Error fetching network devices:', error));
+      .catch((error) =>
+        console.error("Error fetching network devices:", error),
+      );
 
     listen("hostname_found", (e) => {
       if (network?.mac_address) {
@@ -45,27 +43,30 @@ export default function Devices() {
     });
   }, [network?.mac_address]);
 
-
   function initalize_devices(routerMac: string) {
-    invoke('initalize_devices', { routerMac: routerMac })
+    invoke("initalize_devices", { routerMac: routerMac })
       .then((response) => {
         const devicesArray: Device[] = JSON.parse(response as string);
         setDevices(devicesArray);
         console.log(devicesArray);
       })
-      .catch((error) => console.error('Error fetching network devices:', error));
+      .catch((error) =>
+        console.error("Error fetching network devices:", error),
+      );
 
     emit("hostname_request", { router_mac: routerMac });
   }
 
   function get_network_info(routerMac: string) {
-    invoke('get_network_info', { routerMac: routerMac })
+    invoke("get_network_info", { routerMac: routerMac })
       .then((response) => {
         const devicesArray: Device[] = JSON.parse(response as string);
         setDevices(devicesArray);
         console.log(devicesArray);
       })
-      .catch((error) => console.error('Error fetching network devices:', error));
+      .catch((error) =>
+        console.error("Error fetching network devices:", error),
+      );
   }
 
   useEffect(() => {
@@ -74,8 +75,7 @@ export default function Devices() {
     }, 30000);
 
     return () => clearInterval(interval);
-  }, [network?.mac_address]); 
-  
+  }, [network?.mac_address]);
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-2">
@@ -88,7 +88,7 @@ export default function Devices() {
           <p>{network?.country}</p>
         </div>
       </div>
-  
+
       <div className="overflow-x-auto">
         <table className="table table-zebra">
           <thead>

@@ -34,9 +34,3 @@ fn get_netstat_ip() -> Result<String, String> {
 fn is_valid_ipv4(ip: &str) -> bool {
     ip.parse::<Ipv4Addr>().is_ok()
 }
-
-#[tauri::command]
-pub fn greet(name: &str) -> String {
-    println!("called in rust");
-    return format!("{}!", name);
-}

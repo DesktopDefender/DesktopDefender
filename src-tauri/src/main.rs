@@ -10,7 +10,6 @@ fn main() {
         .invoke_handler(tauri::generate_handler![
             find_mac::find_mac_address,
             find_ip::find_ip,
-            find_ip::greet
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

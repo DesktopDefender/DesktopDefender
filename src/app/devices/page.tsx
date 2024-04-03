@@ -18,6 +18,7 @@ interface Device {
   hostname: string;
   manufacturer: string;
   country: string;
+  date_added: string;
 }
 
 export default function Devices() {
@@ -99,6 +100,7 @@ export default function Devices() {
               <th>Hostname</th>
               <th>Manufacturer</th>
               <th>Country</th>
+              <th>Registered</th>
             </tr>
           </thead>
           <tbody>
@@ -110,6 +112,7 @@ export default function Devices() {
                 <td>{entry.hostname}</td>
                 <td>{entry.manufacturer}</td>
                 <td>{entry.country}</td>
+                <td>{entry.date_added}</td>
               </tr>
             ))}
           </tbody>

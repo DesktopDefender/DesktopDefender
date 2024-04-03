@@ -1,10 +1,10 @@
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
-
 use csv::ReaderBuilder;
 use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
+use chrono::prelude::*;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Network {
@@ -21,6 +21,7 @@ pub struct Device {
     pub hostname: String,
     pub manufacturer: String,
     pub country: String,
+    pub date_added: String,
 }
 
 pub fn setup_network_db() {
@@ -52,6 +53,7 @@ pub fn setup_network_db() {
             hostname TEXT DEFAULT 'Unknown',
             manufacturer TEXT DEFAULT 'Unknown',
             country TEXT DEFAULT 'Unknown',
+            date_added TEXT,
             PRIMARY KEY (mac_address, router_mac),
             FOREIGN KEY (router_mac) REFERENCES networks(router_mac)
         )",
@@ -105,7 +107,7 @@ pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
 
 pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<Vec<Device>> {
     let mut stmt = conn.prepare(
-        "SELECT mac_address, ip_address, hostname, manufacturer, country FROM devices WHERE router_mac = ?",
+        "SELECT mac_address, ip_address, hostname, manufacturer, country, date_added FROM devices WHERE router_mac = ?",
     )?;
     let device_iter = stmt.query_map(params![router_mac], |row| {
         Ok(Device {
@@ -114,6 +116,7 @@ pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<Vec<De
             hostname: row.get(2)?,
             manufacturer: row.get(3)?,
             country: row.get(4)?,
+            date_added: row.get(5)?,
         })
     })?;
 
@@ -192,13 +195,15 @@ pub fn add_to_device_table(
     )?;
 
     if !exists {
+        let date_added = Local::now().format("%d/%m/%y").to_string();
+
         println!(
             "Adding device with MAC address {}, IP address {}, and manufacturer {} to router MAC {}",
             mac_address, ip_address, manufacturer, router_mac
         );
         conn.execute(
-            "INSERT INTO devices (mac_address, router_mac, ip_address, manufacturer, country, hostname) VALUES (?, ?, ?, ?, ?, ?)",
-            rusqlite::params![mac_address, router_mac, ip_address, manufacturer, country, "Unknown"],
+            "INSERT INTO devices (mac_address, router_mac, ip_address, manufacturer, country, hostname, date_added) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            rusqlite::params![mac_address, router_mac, ip_address, manufacturer, country, "Unknown", date_added],
         )?;
     }
 

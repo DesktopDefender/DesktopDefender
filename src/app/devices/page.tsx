@@ -79,12 +79,14 @@ export default function Devices() {
 
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-2">
-      <div className="w-96 h-32 rounded-lg bg-DDOrange p-3 m-10">
-        <p>Your router information</p>
-        <p>{network?.mac_address}</p>
-        <p>{network?.ip_address}</p>
-        <p>{network?.manufacturer}</p>
-        <p>{network?.country}</p>
+      <div className="text-center">
+        <p className="m-10 mb-2 text-3xl">Your router</p>
+        <div className="w-96 h-32 rounded-lg bg-DDOrange m-12 mt-0 p-4">
+          <p>{network?.manufacturer}</p>
+          <p>IP Address: {network?.ip_address}</p>
+          <p>MAC Address: {network?.mac_address}</p>
+          <p>{network?.country}</p>
+        </div>
       </div>
   
       <div className="overflow-x-auto">

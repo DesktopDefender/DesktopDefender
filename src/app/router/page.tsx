@@ -10,10 +10,13 @@ export default function Router() {
   const [routerIpLoading, setRouterIpLoading] = useState(false);
   const [routerMac, setRouterMac] = useState("");
   const [routerMacLoading, setRouterMacLoading] = useState(false);
+  const [openPorts, setOpenPorts] = useState<number[]>([]);
+  const [openPortsLoading, setOpenPortsLoading] = useState(false);
   const [routerVendor, setRouterVendor] = useState("");
   const [routerVendorLoading, setRouterVendorLoading] = useState(false);
 
-  const getRouterIp = () => {
+  // function declared using "function"
+  function getRouterIp() {
     if (routerIp !== "") return;
     setRouterIpLoading(true);
     invoke<string>("find_ip")
@@ -23,13 +26,13 @@ export default function Router() {
       })
       .catch(console.error)
       .finally(() => setRouterIpLoading(false));
-  };
+  }
 
   useEffect(() => {
     getRouterIp();
-  }, [getRouterIp]);
+  }, []);
 
-  const getMacAddressFromIp = (ip: string) => {
+  function getMacAddressFromIp(ip: string) {
     setRouterMacLoading(true);
     invoke<string>("find_mac_address", { ip: ip })
       .then((mac) => {
@@ -38,25 +41,44 @@ export default function Router() {
       })
       .catch(console.error)
       .finally(() => setRouterMacLoading(false));
-  };
+  }
 
   useEffect(() => {
     if (routerIp === "") return;
     getMacAddressFromIp(routerIp);
-  }, [routerIp, getMacAddressFromIp]);
+  }, [routerIp]);
 
-  const getOpenPortsFromIp = (ip: string) => {
-    invoke<number[]>("find_open_ports", { ip: ip, ports: [53, 80, 443] })
+  function getOpenPortsFromIp(ip: string) {
+    setOpenPortsLoading(true);
+    invoke<number[]>("find_open_ports", { ip: ip, inPorts: [] })
       .then((ports) => {
         console.log("ports: ", ports);
+        setOpenPorts(ports);
       })
-      .catch(console.error);
-  };
+      .catch(console.error)
+      .finally(() => setOpenPortsLoading(false));
+  }
 
   useEffect(() => {
     if (routerIp === "") return;
     getOpenPortsFromIp(routerIp);
-  }, [routerIp, getOpenPortsFromIp]);
+  }, [routerIp]);
+
+  // const getVendorFromMac = (mac: string) => {
+  //   setRouterVendorLoading(true);
+  //   invoke<string>("find_vendor", { mac: mac })
+  //     .then((vendor) => {
+  //       setRouterVendor(vendor);
+  //       console.log("vendor: ", vendor);
+  //     })
+  //     .catch(console.error)
+  //     .finally(() => setRouterVendorLoading(false));
+  // };
+
+  // useEffect(() => {
+  //   if (routerMac === "") return;
+  //   getVendorFromMac(routerMac);
+  // }, [routerMac, getVendorFromMac]);
 
   return (
     <DDPageContainer>
@@ -69,6 +91,16 @@ export default function Router() {
         <div className="flex justify-between">
           <DDText className="">MAC:</DDText>
           <DDText>{routerMacLoading ? "Loading..." : routerMac}</DDText>
+        </div>
+        <div className="flex justify-between">
+          <DDText className="">Vendor:</DDText>
+          <DDText>{routerVendorLoading ? "Loading..." : routerVendor}</DDText>
+        </div>
+        <div className="flex justify-between">
+          <DDText className="">Open ports:</DDText>
+          <DDText>
+            {openPortsLoading ? "Loading..." : `${openPorts.join(" - ")}`}
+          </DDText>
         </div>
       </div>
     </DDPageContainer>

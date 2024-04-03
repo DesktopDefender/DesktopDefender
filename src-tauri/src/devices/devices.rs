@@ -1,108 +1,135 @@
-use reqwest::blocking::get;
-use serde::{Deserialize, Serialize};
-use serde_json;
-use serde_json::json;
+use serde::Deserialize;
+use serde_json::to_string;
 use std::error::Error;
 use std::process::Command;
+use std::result::Result;
 use std::str;
-use std::{thread, time::Duration};
-use tauri::Window;
 use tauri::{AppHandle, Manager};
 
-use crate::db_service::db_service::{get_connection_to_ouis, get_manufacturer_by_oui};
+use crate::db_service::db_service::{
+    add_hostname, add_to_device_table, add_to_networks_table, get_connection_to_network,
+    get_connection_to_ouis, get_manufacturer_by_oui, get_network, get_network_devices,
+};
 
-#[derive(Serialize, Deserialize)]
-pub struct ArpEntry {
-    pub ip_address: String,
-    pub mac_address: String,
-    pub hostname: String,
-    pub manufacturer: String,
+#[tauri::command]
+pub fn get_router_info() -> Result<String, String> {
+    let network_conn = get_connection_to_network().map_err(|e| e.to_string())?;
+    let ouis_conn = get_connection_to_ouis().map_err(|e| e.to_string())?;
+
+    let ip_output = Command::new("sh")
+        .arg("-c")
+        .arg("netstat -rn | grep default | head -n 1 | tr -s ' ' | cut -d ' ' -f 2")
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    let router_ip = str::from_utf8(&ip_output.stdout)
+        .unwrap()
+        .trim()
+        .to_string();
+    println!("Router IP: {}", router_ip);
+
+    let arp_output = Command::new("arp")
+        .arg("-an")
+        .output()
+        .map_err(|e| e.to_string())?;
+
+    let arp_entries = str::from_utf8(&arp_output.stdout).unwrap();
+
+    let mut mac_address_opt = None;
+
+    for line in arp_entries.lines() {
+        if line.contains(&router_ip) {
+            let parts: Vec<&str> = line.split_whitespace().collect();
+            mac_address_opt = parts.get(3).map(|&mac| mac.to_string());
+            break;
+        }
+    }
+
+    let mac_address = mac_address_opt.ok_or("MAC address not found")?;
+    println!("Router MAC: {}", mac_address);
+
+    let network = match get_network(&network_conn, &mac_address).map_err(|e| e.to_string())? {
+        Some(network) => network,
+        None => {
+            let manufacturer_country = get_manufacturer_by_oui(&ouis_conn, &mac_address)
+                .unwrap_or_else(|_| {
+                    (
+                        "Unknown".to_string(),
+                        "Unknown".to_string(),
+                    )
+                });
+            let (manufacturer, country) = manufacturer_country;
+            add_to_networks_table(
+                &network_conn,
+                &mac_address,
+                &router_ip,
+                &manufacturer,
+                &country,
+            )
+            .map_err(|e| e.to_string())?;
+            get_network(&network_conn, &mac_address)
+                .map_err(|e| e.to_string())?
+                .ok_or("Failed to add or retrieve network")?
+        }
+    };
+
+
+    to_string(&network).map_err(|e| e.to_string())
 }
 
-impl Default for ArpEntry {
-    fn default() -> Self {
-        ArpEntry {
-            ip_address: Default::default(),
-            mac_address: Default::default(),
-            hostname: "Unknown".to_string(),
-            manufacturer: Default::default(),
-        }
+// TODO PORT SCAN, ONLY NEEDS ON LOAD
+#[tauri::command]
+pub fn initalize_devices(router_mac: &str) -> Result<String, String> {
+    let network_conn = get_connection_to_network().map_err(|e| e.to_string())?;
+    let ouis_conn = get_connection_to_ouis().map_err(|e| e.to_string())?;
+
+    let arp_entries = get_arp_table().map_err(|e| e.to_string())?;
+    for entry in arp_entries {
+        let manufacturer_country = get_manufacturer_by_oui(&ouis_conn, &entry.mac_address)
+            .unwrap_or_else(|_| ("Unknown".to_string(), "Unknown".to_string()));
+        let (manufacturer, country) = manufacturer_country;
+
+        add_to_device_table(
+            &network_conn,
+            &entry.mac_address,
+            &entry.ip_address,
+            &manufacturer,
+            &country,
+            router_mac,
+        )
+        .map_err(|e| e.to_string())?;
+    }
+
+    match get_network_devices(&network_conn, router_mac) {
+        Ok(devices) => serde_json::to_string(&devices).map_err(|e| e.to_string()),
+        Err(e) => Err(e.to_string()),
     }
 }
 
-#[derive(Deserialize)]
-pub struct HostnameRequest {
-    ip_address: String,
-}
-
-#[derive(Serialize)]
-struct HostnameResponse {
-    ip_address: String,
-    hostname: String,
-}
-
-pub fn resolve_hostname(ip_address: &str, app_handle: &AppHandle) -> Result<(), Box<dyn Error>> {
-    println!("resolve_hostname");
-
-    let output = Command::new("dig")
-        .args(["-x", ip_address, "-p", "5353", "@224.0.0.251", "+short"])
-        .output()?;
-
-    let hostname = if output.status.success() {
-        let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-        if !stdout.is_empty() {
-            stdout
-        } else {
-            "Unknown".to_string()
-        }
-    } else {
-        "Unknown".to_string()
-    };
-
-    let response = HostnameResponse {
-        ip_address: ip_address.to_string(),
-        hostname,
-    };
-
-    app_handle
-        .emit_all("hostname_response", &json!(response))
-        .map_err(Into::into)
-}
-
-pub fn handle_hostname_request(
-    app_handle: AppHandle,
-    event_payload: Option<String>,
-) -> Result<(), Box<dyn Error>> {
-    println!("handle_hostname_request");
-    let req: HostnameRequest = serde_json::from_str(&event_payload.unwrap())?;
-    resolve_hostname(&req.ip_address, &app_handle)?;
-    Ok(())
-}
 
 #[tauri::command]
-pub fn init_arp_listener(window: Window) {
-    std::thread::spawn(move || loop {
-        match get_devices() {
-            Ok(arp_entries) => {
-                window
-                    .emit("arp_table", &arp_entries)
-                    .expect("Failed to emit event");
-            }
-            Err(e) => eprintln!("Error listening to traffic: {}", e),
-        }
-        thread::sleep(Duration::new(10, 0)); // 5 minutes interval
-    });
+pub fn get_network_info(router_mac: &str) -> Result<String, String> {
+    let network_conn = get_connection_to_network().map_err(|e| e.to_string())?;
+
+    match get_network_devices(&network_conn, router_mac) {
+        Ok(devices) => serde_json::to_string(&devices).map_err(|e| e.to_string()),
+        Err(e) => Err(e.to_string()),
+    }
 }
 
-pub fn get_devices() -> Result<String, String> {
+
+pub struct ArpEntry {
+    pub ip_address: String,
+    pub mac_address: String,
+}
+
+fn get_arp_table() -> Result<Vec<ArpEntry>, String> {
     let output = Command::new("arp")
-        .arg("-a")
+        .arg("-an")
         .output()
         .map_err(|e| e.to_string())?;
 
     let mut entries = Vec::new();
-
-    let conn = get_connection_to_ouis().map_err(|e| e.to_string())?;
 
     if output.status.success() {
         let stdout = String::from_utf8_lossy(&output.stdout);
@@ -113,27 +140,73 @@ pub fn get_devices() -> Result<String, String> {
                 let mac_address = parts[3].to_string();
 
                 if mac_address != "(incomplete)" {
-                    let oui = mac_address.replace(":", "").to_lowercase()[..6].to_string();
-
-                    let manufacturer = get_manufacturer_by_oui(&conn, &oui)
-                        .unwrap_or_else(|_| "Unknown".to_string());
-
                     entries.push(ArpEntry {
                         ip_address,
                         mac_address,
-                        manufacturer,
-                        ..Default::default()
                     });
                 }
             }
         }
     }
-    serde_json::to_string(&entries).map_err(|e| e.to_string())
+    Ok(entries)
 }
 
-#[tauri::command]
-pub async fn get_hostname(ip_address: String) -> String {
-    println!("CALLING get_hostname");
+#[derive(Deserialize)]
+pub struct HostnameRequest {
+    router_mac: String,
+}
+
+pub fn handle_hostname_request(
+    app_handle: AppHandle,
+    event_payload: Option<String>,
+) -> Result<(), Box<dyn Error>> {
+    println!("handle_hostname_request");
+    let req: HostnameRequest = serde_json::from_str(&event_payload.unwrap())?;
+    resolve_network_hostnames(&req.router_mac, &app_handle); //?
+    Ok(())
+}
+
+
+pub fn resolve_network_hostnames(router_mac: &str, app_handle: &AppHandle) {
+    println!("resolve_hostname, router_mac: {}", router_mac);
+
+    let mut found_hostname = true;
+
+    match get_connection_to_network() {
+        Ok(network_conn) => match get_network_devices(&network_conn, router_mac) {
+            Ok(devices) => {
+                for device in devices {
+                    if device.hostname == "Unknown" {
+                        let new_hostname = resolve_hostname(&device.ip_address);
+                        if new_hostname != "Unknown" {
+                            println!("{:?} --- Hostname found {}", device, new_hostname);
+                            let _ = add_hostname(
+                                &network_conn,
+                                &device.mac_address,
+                                router_mac,
+                                &new_hostname,
+                            );
+
+                            found_hostname = true;
+                        }
+                    }
+                }
+            }
+            Err(e) => println!("Error fetching devices: {}", e.to_string()),
+        },
+        Err(e) => println!("Error establishing network connection: {}", e.to_string()),
+    }
+
+  
+    if found_hostname {
+        if let Err(e) = app_handle.emit_all("hostname_found", ()) {
+            eprintln!("Error emitting 'hostname_found': {:?}", e);
+        }
+    }
+}
+
+fn resolve_hostname(ip_address: &str) -> String {
+    println!("resolving for {}", ip_address);
 
     let output = Command::new("dig")
         .args(["-x", &ip_address, "-p", "5353", "@224.0.0.251", "+short"])

@@ -6,10 +6,19 @@ use tauri::AppHandle;
 
 use crate::config::config::{NETWORK_DB_PATH, OUIS_DB_PATH};
 
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct Network {
+    pub mac_address: String,
+    pub ip_address: String,
+    pub manufacturer: String,
+    pub country: String,
+}
+
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Device {
-    pub macAddress: String,
-    pub ipAddress: String,
+    pub mac_address: String,
+    pub ip_address: String,
     pub hostname: String,
     pub manufacturer: String,
     pub country: String,
@@ -35,12 +44,12 @@ pub fn get_connection_to_network() -> Result<Connection, Box<dyn Error>> {
 
 pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<Vec<Device>> {
     let mut stmt = conn.prepare(
-        "SELECT macAddress, ipAddress, hostname, manufacturer, country FROM devices WHERE routerMAC = ?",
+        "SELECT mac_address, ip_address, hostname, manufacturer, country FROM devices WHERE router_mac = ?",
     )?;
     let device_iter = stmt.query_map(params![router_mac], |row| {
         Ok(Device {
-            macAddress: row.get(0)?,
-            ipAddress: row.get(1)?,
+            mac_address: row.get(0)?,
+            ip_address: row.get(1)?,
             hostname: row.get(2)?,
             manufacturer: row.get(3)?,
             country: row.get(4)?,
@@ -55,14 +64,58 @@ pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<Vec<De
     Ok(devices)
 }
 
-pub fn add_to_device_table(conn: &Connection, mac_address: &str, ip_address: &str, manufacturer: &str, router_mac: &str) -> Result<()> {
+
+pub fn get_network(conn: &rusqlite::Connection, router_mac: &str) -> Result<Option<Network>, rusqlite::Error> {
+    rusqlite::OptionalExtension::optional(conn.query_row(
+        "SELECT router_mac, ip_address, manufacturer, country FROM networks WHERE router_mac = ?1",
+        rusqlite::params![router_mac],
+        |row| {
+            Ok(Network {
+                mac_address: row.get(0)?,
+                ip_address: row.get(1)?,
+                manufacturer: row.get(2)?,
+                country: row.get(3)?,
+            })
+        },
+    ))
+}
+
+
+
+pub fn add_to_networks_table(conn: &Connection, router_mac: &str, ip_address: &str, manufacturer: &str, country: &str) -> Result<()> {
+
+    println!("add_to_networks_table");
+
+    let exists: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM networks WHERE router_mac = ?1)",
+        rusqlite::params![router_mac],
+        |row| row.get(0),
+    )?;
+
+    if !exists {
+        println!(
+            "Adding network with MAC address {}, IP address {}, and manufacturer {}",
+            router_mac, ip_address, manufacturer
+        );
+        conn.execute(
+            "INSERT INTO networks (router_mac, ip_address, manufacturer, country) VALUES (?, ?, ?, ?)",
+            rusqlite::params![router_mac, ip_address, manufacturer, country],
+        )?;
+    }
+
+    Ok(())
+}
+
+
+
+pub fn add_to_device_table(conn: &Connection, mac_address: &str, ip_address: &str, manufacturer: &str, country: &str, router_mac: &str) -> Result<()> {
     if mac_address == router_mac {
         println!("Skipped adding device as it matches router MAC");
         return Ok(());
     }
 
     let exists: bool = conn.query_row(
-        "SELECT EXISTS(SELECT 1 FROM devices WHERE macAddress = ?1 AND routerMAC = ?2)",
+        "SELECT EXISTS(SELECT 1 FROM devices WHERE mac_address = ?1 AND router_mac = ?2)",
         rusqlite::params![mac_address, router_mac],
         |row| row.get(0),
     )?;
@@ -73,12 +126,11 @@ pub fn add_to_device_table(conn: &Connection, mac_address: &str, ip_address: &st
             mac_address, ip_address, manufacturer, router_mac
         );
         conn.execute(
-            "INSERT INTO devices (macAddress, routerMAC, ipAddress, manufacturer, hostname, country) VALUES (?, ?, ?, ?, ?, ?)",
-            rusqlite::params![mac_address, router_mac, ip_address, manufacturer, "Unknown", "Unknown"],
+            "INSERT INTO devices (mac_address, router_mac, ip_address, manufacturer, country, hostname) VALUES (?, ?, ?, ?, ?, ?)",
+            rusqlite::params![mac_address, router_mac, ip_address, manufacturer, country, "Unknown"],
         )?;
     }
     
-
     Ok(())
 }
 
@@ -87,7 +139,7 @@ pub fn add_hostname(conn: &Connection, mac_address: &str, router_mac: &str, new_
     println!("add_hostname");
 
     let exists: bool = conn.query_row(
-        "SELECT EXISTS(SELECT 1 FROM devices WHERE macAddress = ?1 AND routerMAC = ?2)",
+        "SELECT EXISTS(SELECT 1 FROM devices WHERE mac_address = ?1 AND router_mac = ?2)",
         rusqlite::params![mac_address, router_mac],
         |row| row.get(0),
     )?;
@@ -97,7 +149,7 @@ pub fn add_hostname(conn: &Connection, mac_address: &str, router_mac: &str, new_
             mac_address, router_mac, new_hostname
         );
         conn.execute(
-            "UPDATE devices SET hostname = ?3 WHERE macAddress = ?1 AND routerMAC = ?2",
+            "UPDATE devices SET hostname = ?3 WHERE mac_address = ?1 AND router_mac = ?2",
             params![mac_address, router_mac, new_hostname],
         )?;
     } else {
@@ -135,16 +187,18 @@ pub fn setup_db(app: &AppHandle) -> Result<Connection, Box<dyn Error>> {
     Connection::open(db_path).map_err(|e| e.into())
 }
 
-pub fn get_manufacturer_by_oui(conn: &Connection, mac_address: &str) -> Result<String> {
+pub fn get_manufacturer_by_oui(conn: &Connection, mac_address: &str) -> Result<(String, String)> {
 
     let oui = mac_address.replace(":", "").to_lowercase()[..6].to_string();
     let oui_upper = oui.to_uppercase();
 
-    let mut stmt = conn.prepare("SELECT manufacturer FROM manufacturers WHERE oui = ?1")?;
+    let mut stmt = conn.prepare("SELECT manufacturer, country FROM manufacturers WHERE oui = ?1")?;
     let mut rows = stmt.query(params![oui_upper])?;
 
     if let Some(row) = rows.next()? {
-        Ok(row.get(0)?)
+        let manufacturer: String = row.get(0)?;
+        let country: String = row.get(1)?;
+        Ok((manufacturer, country))
     } else {
         Err(rusqlite::Error::QueryReturnedNoRows)
     }

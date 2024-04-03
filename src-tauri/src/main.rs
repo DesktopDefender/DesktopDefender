@@ -3,26 +3,24 @@
 
 mod config;
 mod db_service;
-mod devices;
 mod home;
-mod new_devices;
+mod devices;
 
-use crate::new_devices::new_devices::{get_network_info, handle_hostname_request};
-
+use crate::devices::devices::{get_router_info, initalize_devices, get_network_info};
 
 use crate::db_service::db_service::setup_db;
-use crate::devices::devices::{get_hostname, init_arp_listener};
 use crate::home::connection::init_connection_listener;
 
 use crate::config::config::{OUIS_DB_PATH, NETWORK_DB_PATH};
 
+use devices::devices::handle_hostname_request;
 use tauri::Manager;
 
 
 
 fn main() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![get_hostname, get_network_info])
+        .invoke_handler(tauri::generate_handler![get_router_info, initalize_devices, get_network_info])
         .setup(|app| {
             let app_handle = app.app_handle().clone();
             setup_db(&app_handle).expect("Failed to setup the database");
@@ -43,10 +41,7 @@ fn main() {
             NETWORK_DB_PATH.set(network_path).expect("Failed to set DB path");
 
 
-            // init_arp_listener(app.get_window("main").expect("Failed to get main window"));
-
             init_connection_listener(app.get_window("main").expect("Failed to get main window"));
-
 
             let _event_id = app.listen_global("hostname_request", move |event| {
                 if let Err(e) =
@@ -55,7 +50,6 @@ fn main() {
                     eprintln!("Error processing hostname_request: {}", e);
                 }
             });
-
 
 
             Ok(())

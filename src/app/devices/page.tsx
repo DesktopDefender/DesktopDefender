@@ -9,6 +9,7 @@ interface ArpEntry {
   ip_address: string;
   mac_address: string;
   hostname: string;
+  manufacturer: string;
 }
 
 export default function Devices() {
@@ -21,6 +22,7 @@ export default function Devices() {
     listen("arp_table", (e) => {
       const payload = e.payload as string;
       const newEntries: ArpEntry[] = JSON.parse(payload);
+      console.log(newEntries);
       setArpEntries([...newEntries]);
     });
   }, []);
@@ -69,6 +71,7 @@ export default function Devices() {
               <th>IP Address</th>
               <th>MAC Address</th>
               <th>Hostname</th>
+              <th>Manufacturer</th>
             </tr>
           </thead>
           <tbody>
@@ -84,6 +87,7 @@ export default function Devices() {
                 ) : (
                   <td>{entry.hostname}</td>
                 )}
+                <td>{entry.manufacturer}</td>
               </tr>
             ))}
           </tbody>

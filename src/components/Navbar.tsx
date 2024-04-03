@@ -24,6 +24,9 @@ export default function Navbar() {
             <li>
               <Link href="/devices">Devices</Link>
             </li>
+            <li>
+              <Link href="/new_devices">New Devices</Link>
+            </li>
           </ul>
         </div>
       </div>

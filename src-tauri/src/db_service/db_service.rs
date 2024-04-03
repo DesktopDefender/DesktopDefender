@@ -1,6 +1,5 @@
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
-use serde_json::json;
 use std::error::Error;
 use std::process::Command;
 use tauri::AppHandle;
@@ -8,12 +7,12 @@ use tauri::AppHandle;
 use crate::config::config::{NETWORK_DB_PATH, OUIS_DB_PATH};
 
 #[derive(Debug, Serialize, Deserialize)]
-struct Device {
-    macAddress: String,
-    ipAddress: String,
-    hostname: String,
-    manufacturer: String,
-    country: String,
+pub struct Device {
+    pub macAddress: String,
+    pub ipAddress: String,
+    pub hostname: String,
+    pub manufacturer: String,
+    pub country: String,
 }
 
 pub fn get_connection_to_ouis() -> Result<Connection, Box<dyn Error>> {
@@ -34,7 +33,7 @@ pub fn get_connection_to_network() -> Result<Connection, Box<dyn Error>> {
     }
 }
 
-pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<String> {
+pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<Vec<Device>> {
     let mut stmt = conn.prepare(
         "SELECT macAddress, ipAddress, hostname, manufacturer, country FROM devices WHERE routerMAC = ?",
     )?;
@@ -53,9 +52,7 @@ pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<String
         devices.push(device?);
     }
 
-    let json = json!(devices).to_string();
-
-    Ok(json)
+    Ok(devices)
 }
 
 pub fn add_to_device_table(conn: &Connection, mac_address: &str, ip_address: &str, manufacturer: &str, router_mac: &str) -> Result<()> {
@@ -70,13 +67,7 @@ pub fn add_to_device_table(conn: &Connection, mac_address: &str, ip_address: &st
         |row| row.get(0),
     )?;
 
-    if exists {
-        println!(
-            "Device with MAC address {} is already associated with router MAC {}, skipping.",
-            mac_address, router_mac
-        );
-    } else {
-        // If not exists, proceed with the insertion
+    if !exists {
         println!(
             "Adding device with MAC address {}, IP address {}, and manufacturer {} to router MAC {}",
             mac_address, ip_address, manufacturer, router_mac
@@ -85,6 +76,35 @@ pub fn add_to_device_table(conn: &Connection, mac_address: &str, ip_address: &st
             "INSERT INTO devices (macAddress, routerMAC, ipAddress, manufacturer, hostname, country) VALUES (?, ?, ?, ?, ?, ?)",
             rusqlite::params![mac_address, router_mac, ip_address, manufacturer, "Unknown", "Unknown"],
         )?;
+    }
+    
+
+    Ok(())
+}
+
+
+pub fn add_hostname(conn: &Connection, mac_address: &str, router_mac: &str, new_hostname: &str) -> Result<()> {
+    println!("add_hostname");
+
+    let exists: bool = conn.query_row(
+        "SELECT EXISTS(SELECT 1 FROM devices WHERE macAddress = ?1 AND routerMAC = ?2)",
+        rusqlite::params![mac_address, router_mac],
+        |row| row.get(0),
+    )?;
+    if exists {
+        println!(
+            "Updating device with MAC address {} for router MAC {} with new hostname '{}'",
+            mac_address, router_mac, new_hostname
+        );
+        conn.execute(
+            "UPDATE devices SET hostname = ?3 WHERE macAddress = ?1 AND routerMAC = ?2",
+            params![mac_address, router_mac, new_hostname],
+        )?;
+    } else {
+        println!(
+            "Device with MAC address {} and router MAC {} not found, cannot update hostname.",
+            mac_address, router_mac
+        );
     }
 
     Ok(())
@@ -128,12 +148,4 @@ pub fn get_manufacturer_by_oui(conn: &Connection, mac_address: &str) -> Result<S
     } else {
         Err(rusqlite::Error::QueryReturnedNoRows)
     }
-}
-
-
-pub fn update_device_manufacturer(conn: &Connection, mac_address: &str, manufacturer: &str) -> Result<usize> {
-    conn.execute(
-        "UPDATE devices SET manufacturer = ?1 WHERE macAddress = ?2",
-        rusqlite::params![manufacturer, mac_address],
-    )
 }

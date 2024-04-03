@@ -7,11 +7,11 @@ mod devices;
 mod home;
 mod new_devices;
 
-use crate::new_devices::new_devices::get_network_info;
+use crate::new_devices::new_devices::{get_network_info, handle_hostname_request};
 
 
 use crate::db_service::db_service::setup_db;
-use crate::devices::devices::{get_hostname, handle_hostname_request, init_arp_listener};
+use crate::devices::devices::{get_hostname, init_arp_listener};
 use crate::home::connection::init_connection_listener;
 
 use crate::config::config::{OUIS_DB_PATH, NETWORK_DB_PATH};
@@ -43,9 +43,10 @@ fn main() {
             NETWORK_DB_PATH.set(network_path).expect("Failed to set DB path");
 
 
-            init_arp_listener(app.get_window("main").expect("Failed to get main window"));
+            // init_arp_listener(app.get_window("main").expect("Failed to get main window"));
 
             init_connection_listener(app.get_window("main").expect("Failed to get main window"));
+
 
             let _event_id = app.listen_global("hostname_request", move |event| {
                 if let Err(e) =
@@ -54,6 +55,8 @@ fn main() {
                     eprintln!("Error processing hostname_request: {}", e);
                 }
             });
+
+
 
             Ok(())
         })

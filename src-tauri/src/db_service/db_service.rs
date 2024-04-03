@@ -1,7 +1,6 @@
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
 
-use crate::config::config::{NETWORK_DB_PATH, OUIS_DB_PATH};
 use csv::ReaderBuilder;
 use std::error::Error;
 use std::fs::File;

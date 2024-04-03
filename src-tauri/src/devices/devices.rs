@@ -8,8 +8,8 @@ use std::str;
 use tauri::{AppHandle, Manager};
 
 use crate::db_service::db_service::{
-    add_hostname, add_to_device_table, add_to_networks_table, get_connection_to_network,
-    get_connection_to_ouis, get_manufacturer_by_oui, get_network, get_network_devices,
+    add_hostname, add_to_device_table, add_to_networks_table, get_manufacturer_by_oui, get_network,
+    get_network_devices,
 };
 
 #[tauri::command]

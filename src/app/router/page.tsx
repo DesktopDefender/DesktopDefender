@@ -45,6 +45,19 @@ export default function Router() {
     getMacAddressFromIp(routerIp);
   }, [routerIp, getMacAddressFromIp]);
 
+  const getOpenPortsFromIp = (ip: string) => {
+    invoke<number[]>("find_open_ports", { ip: ip, ports: [53, 80, 443] })
+      .then((ports) => {
+        console.log("ports: ", ports);
+      })
+      .catch(console.error);
+  };
+
+  useEffect(() => {
+    if (routerIp === "") return;
+    getOpenPortsFromIp(routerIp);
+  }, [routerIp, getOpenPortsFromIp]);
+
   return (
     <DDPageContainer>
       <div className="flex-grow">

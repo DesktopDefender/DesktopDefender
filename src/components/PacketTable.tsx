@@ -19,7 +19,9 @@ export function PacketTable() {
       const newPackets: PacketInfo[] = JSON.parse(payload);
 
       newPackets.reverse();
-      setPackets((currentPackets) => [...newPackets, ...currentPackets]);
+      setPackets((currentPackets) =>
+        [...newPackets, ...currentPackets].slice(0, 250),
+      );
     });
 
     return () => {

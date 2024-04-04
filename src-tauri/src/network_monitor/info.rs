@@ -26,12 +26,11 @@ impl fmt::Display for Info {
 }
 
 #[tauri::command]
-pub fn init_info_emitter(window: Window) {
+pub fn init_info_emitter(window: Window, token: String) {
     tauri::async_runtime::spawn(async move {
         loop {
-            match ip_lookup().await {
+            match ip_lookup(&token).await {
                 Ok(info_json) => window
-    
                     .emit("info", &info_json)
                     .expect("Failed to emit info"),
                 Err(e) => eprintln!("Error getting ip info {}", e),
@@ -41,9 +40,9 @@ pub fn init_info_emitter(window: Window) {
     });
 }
 
-fn setup_config() -> IpInfo {
+fn setup_config(token: &String) -> IpInfo {
     let config = IpInfoConfig {
-        token: Some("ed3f54e75bfc39".to_string()),
+        token: Some(token.to_string()),
         ..Default::default()
     };
 
@@ -52,14 +51,14 @@ fn setup_config() -> IpInfo {
     return ipinfo;
 }
 
-async fn ip_lookup() -> Result<String, serde_json::Error> {
+async fn ip_lookup(token: &String) -> Result<String, serde_json::Error> {
     let mut ip_set = IP_SET.lock().await;
     let mut ip_cache = IP_CACHE.lock().await;
 
     let ip_strings: Vec<String> = ip_set.clone().iter().map(|ip| ip.to_string()).collect();
     let ip_str_slices: Vec<&str> = ip_strings.iter().map(AsRef::as_ref).collect();
 
-    let mut ip_info = setup_config();
+    let mut ip_info = setup_config(token);
 
     let res = ip_info
         .lookup_batch(&ip_str_slices, BatchReqOpts::default())

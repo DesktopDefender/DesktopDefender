@@ -27,6 +27,7 @@ yarn-error.log*
 
 # local env files
 .env*.local
+src-tauri/.env
 
 # vercel
 .vercel

@@ -27,6 +27,12 @@ parking_lot = "0.12.1"
 ipinfo = "3.0.0"
 tokio = { version = "1.37.0", features = ["full"] }
 dotenvy = "0.15.7"
+rusqlite = "0.26.0"
+csv = "1.1"
+
+[dependencies.reqwest]
+version = "0.11"
+features = ["blocking"]
 
 [features]
 # this feature is used for production builds or when `devPath` points to the filesystem and the built-in dev server is disabled.

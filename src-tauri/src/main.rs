@@ -4,12 +4,19 @@ extern crate hickory_resolver;
 extern crate pcap;
 extern crate pnet;
 
+mod db_service;
+mod devices;
+mod home;
 mod network_monitor;
+
 use crate::network_monitor::monitor;
 use dotenvy::dotenv;
 use network_monitor::info::Info;
 use once_cell::sync::Lazy;
-// use parking_lot::Mutex;
+use crate::db_service::db_service::{setup_network_db, setup_ouis_db};
+use crate::devices::devices::{get_network_info, get_router_info, initalize_devices};
+use crate::home::connection::init_connection_listener;
+use devices::devices::handle_hostname_request;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::net::Ipv4Addr;
@@ -26,6 +33,20 @@ fn main() {
             dotenv().ok();
             let api_key = env::var("API_TOKEN").expect("API_TOKEN must be set");
 
+            setup_network_db();
+            let _ = setup_ouis_db();
+
+            init_connection_listener(app.get_window("main").expect("Failed to get main window"));
+
+            let app_handle = app.app_handle().clone();
+            let _event_id = app.listen_global("hostname_request", move |event| {
+                if let Err(e) =
+                    handle_hostname_request(app_handle.clone(), event.payload().map(String::from))
+                {
+                    eprintln!("Error processing hostname_request: {}", e);
+                }
+            });
+
             monitor::init_traffic_emitter(
                 app.get_window("main").expect("Failed to get main window"),
             );
@@ -35,6 +56,11 @@ fn main() {
             );
             Ok(())
         })
+        .invoke_handler(tauri::generate_handler![
+            get_router_info,
+            initalize_devices,
+            get_network_info
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

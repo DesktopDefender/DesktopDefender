@@ -31,7 +31,7 @@ fn main() {
     tauri::Builder::default()
         .setup(|app| {
             dotenv().ok();
-            let api_key = env::var("API_TOKEN").expect("API_TOKEN must be set");
+            let api_key = env::var("IPINFO_TOKEN").expect("IPINFO_TOKEN must be set");
 
             setup_network_db();
             let _ = setup_ouis_db();

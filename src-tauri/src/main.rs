@@ -9,7 +9,9 @@ mod devices;
 mod home;
 mod network_monitor;
 
-use crate::db_service::db_service::{setup_network_db, setup_ouis_db};
+use crate::db_service::db_service::{
+    client_get_manufacturer_by_oui, setup_network_db, setup_ouis_db,
+};
 use crate::devices::devices::{get_network_info, get_router_info, initalize_devices};
 use crate::home::connection::init_connection_listener;
 use crate::network_monitor::monitor;
@@ -29,6 +31,12 @@ static IP_SET: Lazy<Mutex<HashSet<Ipv4Addr>>> = Lazy::new(|| Mutex::new(HashSet:
 
 fn main() {
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            get_router_info,
+            initalize_devices,
+            get_network_info,
+            client_get_manufacturer_by_oui
+        ])
         .setup(|app| {
             dotenv().ok();
             let api_key = env::var("IPINFO_TOKEN").expect("IPINFO_TOKEN must be set");
@@ -56,11 +64,6 @@ fn main() {
             );
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![
-            get_router_info,
-            initalize_devices,
-            get_network_info
-        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }

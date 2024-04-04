@@ -9,14 +9,14 @@ mod devices;
 mod home;
 mod network_monitor;
 
-use crate::network_monitor::monitor;
-use dotenvy::dotenv;
-use network_monitor::info::Info;
-use once_cell::sync::Lazy;
 use crate::db_service::db_service::{setup_network_db, setup_ouis_db};
 use crate::devices::devices::{get_network_info, get_router_info, initalize_devices};
 use crate::home::connection::init_connection_listener;
+use crate::network_monitor::monitor;
 use devices::devices::handle_hostname_request;
+use dotenvy::dotenv;
+use network_monitor::info::Info;
+use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 use std::env;
 use std::net::Ipv4Addr;

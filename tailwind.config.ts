@@ -8,14 +8,23 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      keyframes: {
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
+        },
+      },
       backgroundImage: {
         "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
         "gradient-conic":
           "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
       },
-      colors: {
-        DDOrange: "#F27F15",
-      },
+    },
+    animation: {
+      fadeIn: "fadeIn 1s forwards",
+    },
+    colors: {
+      DDOrange: "#F27F15",
     },
   },
   plugins: [require("daisyui")],

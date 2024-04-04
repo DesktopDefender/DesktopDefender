@@ -4,6 +4,7 @@ const routes = [
   { href: "/", name: "Home" },
   { href: "/router", name: "Router" },
   { href: "/devices", name: "Devices" },
+  { href: "/monitor", name: "Monitor" },
 ];
 
 export default function Navbar() {

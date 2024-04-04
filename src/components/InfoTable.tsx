@@ -30,7 +30,7 @@ export function IpTable() {
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-between p-4">
+    <div className="flex flex-col items-center justify-between p-4">
       <div className="overflow-x-auto">
         <table className="table">
           <thead>

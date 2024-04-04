@@ -63,7 +63,7 @@ export const RealTimeChart = () => {
     const unlisten = listen("packets", (e) => {
       const payload = e.payload as string;
       const newPackets: PacketInfo[] = JSON.parse(payload);
-      const timestamp = new Date().toLocaleTimeString(); // Get current time as a string
+      const timestamp = new Date().toLocaleTimeString();
 
       setPacketRate((prevRates) => [
         ...prevRates,

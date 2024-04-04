@@ -14,7 +14,7 @@ returns a subset of those ports which could be connected to
 If the port list is empty, the method will try all ports it wants to.
 */
 #[tauri::command]
-pub fn find_open_ports(ip: &str, in_ports: Vec<i32>) -> Vec<i32> {
+pub async fn find_open_ports(ip: &str, in_ports: Vec<i32>) -> Result<Vec<i32>, ()> {
     let ports;
     let mut open_ports: Vec<i32> = Vec::new();
 
@@ -60,7 +60,7 @@ pub fn find_open_ports(ip: &str, in_ports: Vec<i32>) -> Vec<i32> {
         open_ports.push(p);
     }
 
-    return open_ports;
+    return Ok(open_ports);
 }
 
 fn generate_ports() -> Vec<i32> {

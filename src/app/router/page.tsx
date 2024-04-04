@@ -80,6 +80,22 @@ export default function Router() {
   //   getVendorFromMac(routerMac);
   // }, [routerMac, getVendorFromMac]);
 
+  const getVendorFromMac = (mac: string) => {
+    setRouterVendorLoading(true);
+    invoke<string>("find_vendor", { mac: mac })
+      .then((vendor) => {
+        setRouterVendor(vendor);
+        console.log("vendor: ", vendor);
+      })
+      .catch(console.error)
+      .finally(() => setRouterVendorLoading(false));
+  };
+
+  useEffect(() => {
+    if (routerMac === "") return;
+    getVendorFromMac(routerMac);
+  }, [routerMac, getVendorFromMac]);
+
   return (
     <DDPageContainer>
       <div className="flex-grow">

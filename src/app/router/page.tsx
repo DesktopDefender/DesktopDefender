@@ -1,7 +1,9 @@
 "use client";
 
 import DDPageContainer from "@/components/DDPageContainer";
-import DDText from "@/components/DDText";
+import DDText from "@/components/core/DDText";
+import ExternalLink from "@/components/core/ExternalLink";
+import { open } from "@tauri-apps/api/shell";
 import { invoke } from "@tauri-apps/api/tauri";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -54,7 +56,7 @@ export default function Router() {
 
   function getOpenPortsFromIp(ip: string) {
     setOpenPortsLoading(true);
-    invoke<number[]>("find_open_ports", { ip: ip, inPorts: [] })
+    invoke<number[]>("find_open_ports", { ip: ip, inPorts: [80, 443] })
       .then((ports) => {
         console.log("ports: ", ports);
         setOpenPorts(ports);
@@ -130,14 +132,15 @@ export default function Router() {
             renderPorts(openPorts)
           )}
         </div>
-        {openPorts.includes(80) && (
-          <Link
-            className="bg-slate-600 hover:bg-slate-700 active:bg-slate-800 px-2 py-1 rounded-md"
-            href={`http://${routerIp}`}
-          >
-            Admin Portal
-          </Link>
-        )}
+        {openPorts.includes(80) ||
+          (openPorts.includes(443) && (
+            <ExternalLink
+              className="bg-slate-600 hover:bg-slate-700 active:bg-slate-800 px-2 py-1 rounded-md"
+              url={`http${openPorts.includes(443) ? "s" : ""}://${routerIp}`}
+            >
+              Admin Portal
+            </ExternalLink>
+          ))}
         <DDText>{infoMessage}</DDText>
       </div>
     </DDPageContainer>

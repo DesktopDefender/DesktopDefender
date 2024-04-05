@@ -1,7 +1,7 @@
+use chrono::prelude::*;
+use csv::ReaderBuilder;
 use rusqlite::{params, Connection, Result};
 use serde::{Deserialize, Serialize};
-
-use csv::ReaderBuilder;
 use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
@@ -21,10 +21,17 @@ pub struct Device {
     pub hostname: String,
     pub manufacturer: String,
     pub country: String,
+    pub date_added: String,
 }
 
 pub fn setup_network_db() {
-    println!("creating network.db");
+    /*
+        Path needs to be set to src-tauri. Trying to resolve paths nested inside src-tauri for example src-tauri/db-stuff
+        results in needing to include files in tauri.conf.json resources, code for resolving the paths and storing the paths
+        in global variables were they can be accessed. Also the file would need to be created beforehand to reference it in
+        tauri.conf.json resources.
+        Storing it in src-tauri is the easiest solution for now.
+    */
     let conn = Connection::open("network.db").expect("Failed to open database");
 
     conn.execute(
@@ -46,6 +53,7 @@ pub fn setup_network_db() {
             hostname TEXT DEFAULT 'Unknown',
             manufacturer TEXT DEFAULT 'Unknown',
             country TEXT DEFAULT 'Unknown',
+            date_added TEXT,
             PRIMARY KEY (mac_address, router_mac),
             FOREIGN KEY (router_mac) REFERENCES networks(router_mac)
         )",
@@ -55,7 +63,13 @@ pub fn setup_network_db() {
 }
 
 pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
-    println!("creating ouis.db");
+    /*
+        Path needs to be set to src-tauri. Trying to resolve paths nested inside src-tauri for example src-tauri/db-stuff
+        results in needing to include files in tauri.conf.json resources, code for resolving the paths and storing the paths
+        in global variables were they can be accessed. Also the file would need to be created beforehand to reference it in
+        tauri.conf.json resources.
+        Storing it in src-tauri is the easiest solution for now.
+    */
 
     let mut conn = Connection::open("ouis.db")?;
 
@@ -70,13 +84,13 @@ pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
 
     let file = File::open("ouis.csv")?;
     let mut rdr = ReaderBuilder::new()
-        .has_headers(false) // Set to true if your CSV file has headers
+        .has_headers(false)
         .from_reader(BufReader::new(file));
 
     let tx = conn.transaction()?;
     for result in rdr.records() {
         let record = result?;
-        // The CSV crate already handles the removal of quotes if the fields are quoted.
+
         let oui = record.get(0).ok_or("missing field 'oui'")?;
         let manufacturer = record.get(1).ok_or("missing field 'manufacturer'")?;
         let country = record.get(2).ok_or("missing field 'country'")?;
@@ -93,7 +107,7 @@ pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
 
 pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<Vec<Device>> {
     let mut stmt = conn.prepare(
-        "SELECT mac_address, ip_address, hostname, manufacturer, country FROM devices WHERE router_mac = ?",
+        "SELECT mac_address, ip_address, hostname, manufacturer, country, date_added FROM devices WHERE router_mac = ?",
     )?;
     let device_iter = stmt.query_map(params![router_mac], |row| {
         Ok(Device {
@@ -102,6 +116,7 @@ pub fn get_network_devices(conn: &Connection, router_mac: &str) -> Result<Vec<De
             hostname: row.get(2)?,
             manufacturer: row.get(3)?,
             country: row.get(4)?,
+            date_added: row.get(5)?,
         })
     })?;
 
@@ -180,13 +195,15 @@ pub fn add_to_device_table(
     )?;
 
     if !exists {
+        let date_added = Local::now().format("%d/%m/%y").to_string();
+
         println!(
             "Adding device with MAC address {}, IP address {}, and manufacturer {} to router MAC {}",
             mac_address, ip_address, manufacturer, router_mac
         );
         conn.execute(
-            "INSERT INTO devices (mac_address, router_mac, ip_address, manufacturer, country, hostname) VALUES (?, ?, ?, ?, ?, ?)",
-            rusqlite::params![mac_address, router_mac, ip_address, manufacturer, country, "Unknown"],
+            "INSERT INTO devices (mac_address, router_mac, ip_address, manufacturer, country, hostname, date_added) VALUES (?, ?, ?, ?, ?, ?, ?)",
+            rusqlite::params![mac_address, router_mac, ip_address, manufacturer, country, "Unknown", date_added],
         )?;
     }
 
@@ -240,4 +257,40 @@ pub fn get_manufacturer_by_oui(conn: &Connection, mac_address: &str) -> Result<(
     } else {
         Err(rusqlite::Error::QueryReturnedNoRows)
     }
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct OuiResponse {
+    pub manufacturer: String,
+    pub country: String,
+}
+
+#[tauri::command]
+pub fn client_get_manufacturer_by_oui(mac_address: &str) -> Result<String, String> {
+    let ouis_conn = Connection::open("ouis.db").map_err(|e| e.to_string())?;
+
+    let oui = mac_address.replace(":", "").to_lowercase()[..6].to_string();
+    let oui_upper = oui.to_uppercase();
+
+    let mut stmt = ouis_conn
+        .prepare("SELECT manufacturer, country FROM manufacturers WHERE oui = ?1")
+        .map_err(|e| e.to_string())?;
+    let mut rows = stmt.query(params![oui_upper]).map_err(|e| e.to_string())?;
+
+    let response = if let Some(row) = rows.next().map_err(|e| e.to_string())? {
+        let manufacturer: String = row.get(0).unwrap_or_else(|_| "Unknown".to_string());
+        let country: String = row.get(1).unwrap_or_else(|_| "Unknown".to_string());
+
+        OuiResponse {
+            manufacturer,
+            country,
+        }
+    } else {
+        OuiResponse {
+            manufacturer: "Unknown".to_string(),
+            country: "Unknown".to_string(),
+        }
+    };
+
+    serde_json::to_string(&response).map_err(|e| e.to_string())
 }

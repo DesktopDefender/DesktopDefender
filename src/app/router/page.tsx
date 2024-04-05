@@ -18,6 +18,7 @@ export default function Router() {
   const [routerVendorLoading, setRouterVendorLoading] = useState(false);
 
   const [infoMessage, setInfoMessage] = useState("");
+  const [infoMessageLoading, setInfoMessageLoading] = useState(false);
 
   // function declared using "function"
   function getRouterIp() {
@@ -54,7 +55,7 @@ export default function Router() {
 
   function getOpenPortsFromIp(ip: string) {
     setOpenPortsLoading(true);
-    invoke<number[]>("find_open_ports", { ip: ip, inPorts: [] })
+    invoke<number[]>("find_open_ports", { ip: ip, inPorts: [53, 443] })
       .then((ports) => {
         console.log("ports: ", ports);
         setOpenPorts(ports);
@@ -92,13 +93,16 @@ export default function Router() {
         type="button"
         className="px-2 py-1 w-14 text-center rounded-md bg-slate-500 hover:bg-slate-600 active:bg-slate-700"
         onClick={() => {
-          invoke<string>("call_http_port", { host: routerIp, port: p }).then(
-            (res) => {
+          setInfoMessageLoading(true);
+          invoke<string>("call_http_port", { host: routerIp, port: p })
+            .then((res) => {
               console.log("httpPort: ", res);
-              if (res) setInfoMessage(`port ${p} success 😎`);
-              else setInfoMessage(`port ${p} not success 🫵😂`);
-            },
-          );
+              setInfoMessage(`${p}: bro is http 😎`);
+            })
+            .catch((e) => {
+              setInfoMessage(`${p}: bro is not http 🫵😂`);
+            })
+            .finally(() => setInfoMessageLoading(false));
         }}
       >
         {p}
@@ -138,7 +142,7 @@ export default function Router() {
             Admin Portal
           </Link>
         )}
-        <DDText>{infoMessage}</DDText>
+        <DDText>{infoMessageLoading ? "Loading..." : infoMessage}</DDText>
       </div>
     </DDPageContainer>
   );

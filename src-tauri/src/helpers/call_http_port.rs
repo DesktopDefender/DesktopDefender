@@ -7,5 +7,6 @@ pub async fn call_http_port(host: &str, port: i32) -> Result<String, String> {
         .text()
         .await
         .map_err(|e| e.to_string())?;
+
     return Ok(response);
 }

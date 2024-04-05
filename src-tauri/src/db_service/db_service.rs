@@ -186,13 +186,13 @@ pub fn add_to_device_table(
     country: &str,
     router_mac: &str,
 ) -> Result<()> {
-    if mac_address == router_mac {
+    let cleaned_mac = clean_mac_address(mac_address);
+    let cleaned_router = clean_mac_address(router_mac);
+
+    if cleaned_mac == cleaned_router {
         println!("Skipped adding device as it matches router MAC");
         return Ok(());
     }
-
-    let cleaned_mac = clean_mac_address(mac_address);
-    let cleaned_router = clean_mac_address(router_mac);
 
     let exists: bool = conn.query_row(
         "SELECT EXISTS(SELECT 1 FROM devices WHERE mac_address = ?1 AND router_mac = ?2)",

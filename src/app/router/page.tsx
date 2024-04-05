@@ -1,7 +1,8 @@
 "use client";
 
 import DDPageContainer from "@/components/DDPageContainer";
-import DDText from "@/components/DDText";
+import DDText from "@/components/core/DDText";
+import ExternalLink from "@/components/core/ExternalLink";
 import { open } from "@tauri-apps/api/shell";
 import { invoke } from "@tauri-apps/api/tauri";
 import Link from "next/link";
@@ -133,17 +134,12 @@ export default function Router() {
         </div>
         {openPorts.includes(80) ||
           (openPorts.includes(443) && (
-            <Link
-              onClick={(e) => {
-                e.preventDefault();
-                console.log("nice...");
-                open(`http${openPorts.includes(443) ? "s" : ""}://${routerIp}`);
-              }}
+            <ExternalLink
               className="bg-slate-600 hover:bg-slate-700 active:bg-slate-800 px-2 py-1 rounded-md"
-              href={`http${openPorts.includes(443) ? "s" : ""}://${routerIp}`}
+              url={`http${openPorts.includes(443) ? "s" : ""}://${routerIp}`}
             >
               Admin Portal
-            </Link>
+            </ExternalLink>
           ))}
         <DDText>{infoMessage}</DDText>
       </div>

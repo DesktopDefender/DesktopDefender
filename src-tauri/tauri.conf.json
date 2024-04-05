@@ -67,7 +67,9 @@
         "height": 600,
         "resizable": true,
         "title": "The Desktop Defender",
-        "width": 800
+        "width": 870,
+        "minHeight": 400,
+        "minWidth": 870
       }
     ]
   }

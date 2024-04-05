@@ -4,22 +4,21 @@ import { RealTimeChart } from "@/components/Chart";
 import { IpTable } from "@/components/InfoTable";
 import { PacketTable } from "@/components/PacketTable";
 import { CountryPieChart } from "@/components/PieChart";
+import DDPageContainer from "@/components/DDPageContainer";
 
 export default function Monitor() {
   return (
-    <div className="flex flex-col px-8">
-      <div>
+    <DDPageContainer>
+      <>
         <RealTimeChart />
         <IpTable />
-      </div>
-      <div className="flex flex-row justify-between items-start">
-        <div className="pt-16">
-          <CountryPieChart />
-        </div>
-        <div>
+        <div className="flex justify-center items-center">
+          <div className="pt-8">
+            <CountryPieChart />
+          </div>
           <PacketTable />
         </div>
-      </div>
-    </div>
+      </>
+    </DDPageContainer>
   );
 }

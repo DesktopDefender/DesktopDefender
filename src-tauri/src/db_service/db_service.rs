@@ -276,7 +276,7 @@ pub struct OuiResponse {
 }
 
 #[tauri::command]
-pub fn client_get_manufacturer_by_oui(mac_address: &str) -> Result<String, String> {
+pub fn get_manufacturer_by_mac(mac_address: &str) -> Result<String, String> {
     let ouis_conn = Connection::open("ouis.db").map_err(|e| e.to_string())?;
 
     let oui = clean_mac_address(mac_address)

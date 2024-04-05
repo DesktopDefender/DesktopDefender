@@ -6,15 +6,20 @@ extern crate pnet;
 
 mod db_service;
 mod devices;
+mod helpers;
 mod home;
 mod network_monitor;
+mod router;
 
-use crate::db_service::db_service::{
-    client_get_manufacturer_by_oui, setup_network_db, setup_ouis_db,
-};
+use crate::db_service::db_service::{get_manufacturer_by_mac, setup_network_db, setup_ouis_db};
 use crate::devices::devices::{get_network_info, get_router_info, initalize_devices};
+use crate::helpers::call_http_port::call_http_port;
+use crate::helpers::port_scanner::find_open_ports;
 use crate::home::connection::init_connection_listener;
 use crate::network_monitor::monitor;
+use crate::router::find_ip::find_ip;
+use crate::router::find_mac::find_mac_address;
+
 use devices::devices::handle_hostname_request;
 use dotenvy::dotenv;
 use network_monitor::info::Info;
@@ -32,10 +37,14 @@ static IP_SET: Lazy<Mutex<HashSet<Ipv4Addr>>> = Lazy::new(|| Mutex::new(HashSet:
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
+            call_http_port,
+            find_ip,
+            find_mac_address,
+            find_open_ports,
+            get_manufacturer_by_mac,
+            get_network_info,
             get_router_info,
             initalize_devices,
-            get_network_info,
-            client_get_manufacturer_by_oui
         ])
         .setup(|app| {
             dotenv().ok();

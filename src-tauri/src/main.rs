@@ -13,6 +13,7 @@ mod router;
 
 use crate::db_service::db_service::{get_manufacturer_by_mac, setup_network_db, setup_ouis_db};
 use crate::devices::devices::{get_network_info, get_router_info, initalize_devices};
+use crate::helpers::call_http_port::call_http_port;
 use crate::helpers::port_scanner::find_open_ports;
 use crate::home::connection::init_connection_listener;
 use crate::network_monitor::monitor;
@@ -36,12 +37,13 @@ static IP_SET: Lazy<Mutex<HashSet<Ipv4Addr>>> = Lazy::new(|| Mutex::new(HashSet:
 fn main() {
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
-            get_manufacturer_by_mac,
+            call_http_port,
             find_ip,
             find_mac_address,
             find_open_ports,
-            get_router_info,
+            get_manufacturer_by_mac,
             get_network_info,
+            get_router_info,
             initalize_devices,
         ])
         .setup(|app| {

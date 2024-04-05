@@ -3,6 +3,7 @@
 import DDPageContainer from "@/components/DDPageContainer";
 import DDText from "@/components/DDText";
 import { invoke } from "@tauri-apps/api/tauri";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Manufacturer } from "../types/Manufacturer";
 
@@ -15,6 +16,8 @@ export default function Router() {
   const [openPortsLoading, setOpenPortsLoading] = useState(false);
   const [routerVendor, setRouterVendor] = useState("");
   const [routerVendorLoading, setRouterVendorLoading] = useState(false);
+
+  const [infoMessage, setInfoMessage] = useState("");
 
   // function declared using "function"
   function getRouterIp() {
@@ -82,6 +85,27 @@ export default function Router() {
     getVendorFromMac(routerMac);
   }, [routerMac]);
 
+  const renderPorts = (ports: number[]) => {
+    return ports.map((p) => (
+      <button
+        key={p}
+        type="button"
+        className="px-2 py-1 w-14 text-center rounded-md bg-slate-500 hover:bg-slate-600 active:bg-slate-700"
+        onClick={() => {
+          invoke<string>("call_http_port", { host: routerIp, port: p }).then(
+            (res) => {
+              console.log("httpPort: ", res);
+              if (res) setInfoMessage(`port ${p} success 😎`);
+              else setInfoMessage(`port ${p} not success 🫵😂`);
+            },
+          );
+        }}
+      >
+        {p}
+      </button>
+    ));
+  };
+
   return (
     <DDPageContainer>
       <div className="flex-grow">
@@ -100,10 +124,21 @@ export default function Router() {
         </div>
         <div className="flex justify-between">
           <DDText className="">Open ports:</DDText>
-          <DDText>
-            {openPortsLoading ? "Loading..." : `${openPorts.join(" - ")}`}
-          </DDText>
+          {openPortsLoading ? (
+            <DDText>"Loading..."</DDText>
+          ) : (
+            renderPorts(openPorts)
+          )}
         </div>
+        {openPorts.includes(80) && (
+          <Link
+            className="bg-slate-600 hover:bg-slate-700 active:bg-slate-800 px-2 py-1 rounded-md"
+            href={`http://${routerIp}`}
+          >
+            Admin Portal
+          </Link>
+        )}
+        <DDText>{infoMessage}</DDText>
       </div>
     </DDPageContainer>
   );

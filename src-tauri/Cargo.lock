@@ -99,6 +99,7 @@ dependencies = [
  "parking_lot",
  "pcap",
  "pnet",
+ "regex",
  "reqwest",
  "rusqlite",
  "serde",

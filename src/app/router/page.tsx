@@ -4,6 +4,7 @@ import DDPageContainer from "@/components/DDPageContainer";
 import DDText from "@/components/DDText";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
+import type { Manufacturer } from "../types/Manufacturer";
 
 export default function Router() {
   const [routerIp, setRouterIp] = useState("");
@@ -64,37 +65,22 @@ export default function Router() {
     getOpenPortsFromIp(routerIp);
   }, [routerIp]);
 
-  // const getVendorFromMac = (mac: string) => {
-  //   setRouterVendorLoading(true);
-  //   invoke<string>("find_vendor", { mac: mac })
-  //     .then((vendor) => {
-  //       setRouterVendor(vendor);
-  //       console.log("vendor: ", vendor);
-  //     })
-  //     .catch(console.error)
-  //     .finally(() => setRouterVendorLoading(false));
-  // };
-
-  // useEffect(() => {
-  //   if (routerMac === "") return;
-  //   getVendorFromMac(routerMac);
-  // }, [routerMac, getVendorFromMac]);
-
-  const getVendorFromMac = (mac: string) => {
+  function getVendorFromMac(mac: string) {
     setRouterVendorLoading(true);
-    invoke<string>("find_vendor", { mac: mac })
+    invoke<string>("get_manufacturer_by_mac", { macAddress: mac })
       .then((vendor) => {
-        setRouterVendor(vendor);
-        console.log("vendor: ", vendor);
+        const v: Manufacturer = JSON.parse(vendor);
+        setRouterVendor(`${v.manufacturer} - ${v.country}`);
+        console.log("vendor: ", v);
       })
       .catch(console.error)
       .finally(() => setRouterVendorLoading(false));
-  };
+  }
 
   useEffect(() => {
     if (routerMac === "") return;
     getVendorFromMac(routerMac);
-  }, [routerMac, getVendorFromMac]);
+  }, [routerMac]);
 
   return (
     <DDPageContainer>

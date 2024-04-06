@@ -19,6 +19,7 @@ export default function Router() {
 
   const [infoMessage, setInfoMessage] = useState("");
   const [infoMessageLoading, setInfoMessageLoading] = useState(false);
+  const [endpoints, setEndpoints] = useState<string[]>([]);
 
   // function declared using "function"
   function getRouterIp() {
@@ -94,11 +95,10 @@ export default function Router() {
         className="px-2 py-1 w-14 text-center rounded-md bg-slate-500 hover:bg-slate-600 active:bg-slate-700"
         onClick={() => {
           setInfoMessageLoading(true);
-          invoke<string>("call_http_port", { host: routerIp, port: p })
+          invoke<string[]>("call_http_port", { host: routerIp, port: p })
             .then((res) => {
-              const endpoints: string[] = JSON.parse(res);
-
-              console.log("endpoints: ", endpoints);
+              console.log("endpoints: ", res);
+              setEndpoints(res);
               setInfoMessage(`${p}: bro is http 😎`);
             })
             .catch((e) => {
@@ -112,6 +112,18 @@ export default function Router() {
       </button>
     ));
   };
+
+  function renderEndpoints(): JSX.Element {
+    return (
+      <div className="flex flex-wrap gap-2">
+        {endpoints.map((e) => (
+          <span className="bg-blue-500 p-2 rounded-md">
+            <DDText className="">{e}</DDText>
+          </span>
+        ))}
+      </div>
+    );
+  }
 
   return (
     <DDPageContainer>
@@ -147,6 +159,7 @@ export default function Router() {
             </ExternalLink>
           ))}
         <DDText>{infoMessage}</DDText>
+        {endpoints.length !== 0 && renderEndpoints()}
       </div>
     </DDPageContainer>
   );

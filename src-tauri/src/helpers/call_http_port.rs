@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use regex::Regex;
 use reqwest::{Client, Response};
 
@@ -138,5 +140,8 @@ async fn find_endpoints(host: &str, port: i32, text: &str, client: Client) -> Ve
             }
         }
     }
-    return endpoints;
+    // filter out duplicates...
+    let uniques: HashSet<String> = endpoints.into_iter().collect();
+    // ... while still returning a vector
+    return uniques.into_iter().collect();
 }

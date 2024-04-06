@@ -4,7 +4,7 @@ use regex::Regex;
 use reqwest::{Client, Response};
 
 #[tauri::command]
-pub async fn call_http_port(host: &str, port: i32) -> Result<String, String> {
+pub async fn call_http_port(host: &str, port: i32) -> Result<Vec<String>, String> {
     let address = create_address_url(host, port);
 
     let client = Client::builder()
@@ -32,12 +32,12 @@ pub async fn call_http_port(host: &str, port: i32) -> Result<String, String> {
     let endpoints: Vec<String> = find_endpoints(host, port, text.as_str(), client.clone()).await;
 
     println!("Endpoints: (found {}) ", endpoints.len());
-    for e in endpoints {
+    for e in &endpoints {
         println!(" - {}", e);
     }
     println!("");
 
-    return Ok(text);
+    return Ok(endpoints);
 }
 
 fn create_address_url(host: &str, port: i32) -> String {

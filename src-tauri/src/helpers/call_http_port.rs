@@ -1,7 +1,7 @@
 use std::collections::HashSet;
 
 use regex::Regex;
-use reqwest::{Client, Response};
+use reqwest::{Client, Response, StatusCode};
 
 #[tauri::command]
 pub async fn call_http_port(host: &str, port: i32) -> Result<Vec<String>, String> {
@@ -33,7 +33,14 @@ pub async fn call_http_port(host: &str, port: i32) -> Result<Vec<String>, String
 
     println!("Endpoints: (found {}) ", endpoints.len());
     for e in &endpoints {
-        println!(" - {}", e);
+        let url = format!("{}{}", create_address_url(host, port), e);
+        let status_code = get_status_code(url.as_str(), client.clone()).await;
+
+        if let Some(s) = status_code {
+            println!("{} - {}", s, e);
+        } else {
+            println!("ERR - {}", e);
+        }
     }
     println!("");
 
@@ -144,4 +151,13 @@ async fn find_endpoints(host: &str, port: i32, text: &str, client: Client) -> Ve
     let uniques: HashSet<String> = endpoints.into_iter().collect();
     // ... while still returning a vector
     return uniques.into_iter().collect();
+}
+
+async fn get_status_code(url: &str, client: Client) -> Option<StatusCode> {
+    let response_result = client.get(url).send().await;
+
+    match response_result {
+        Ok(response) => Some(response.status()),
+        Err(_) => None,
+    }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import DDText from "@/components/DDText";
+import DDText from "@/components/core/DDText";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 

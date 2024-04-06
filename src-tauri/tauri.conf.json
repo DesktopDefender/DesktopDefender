@@ -13,7 +13,14 @@
   },
   "tauri": {
     "allowlist": {
-      "all": false
+      "all": false,
+      "shell": {
+        "all": false,
+        "execute": false,
+        "open": true,
+        "scope": [],
+        "sidecar": false
+      }
     },
     "bundle": {
       "active": true,
@@ -60,7 +67,9 @@
         "height": 600,
         "resizable": true,
         "title": "The Desktop Defender",
-        "width": 800
+        "width": 870,
+        "minHeight": 400,
+        "minWidth": 870
       }
     ]
   }

@@ -19,7 +19,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="absolute top-0 left-0 bg-slate-900">
+    <nav className="fixed top-0 left-0 bg-slate-900 h-screen">
       <div className="drawer h-screen flex items-center">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">

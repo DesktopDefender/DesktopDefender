@@ -3,9 +3,7 @@
 import DDPageContainer from "@/components/DDPageContainer";
 import DDText from "@/components/core/DDText";
 import ExternalLink from "@/components/core/ExternalLink";
-import { open } from "@tauri-apps/api/shell";
 import { invoke } from "@tauri-apps/api/tauri";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Manufacturer } from "../types/Manufacturer";
 
@@ -98,10 +96,13 @@ export default function Router() {
           setInfoMessageLoading(true);
           invoke<string>("call_http_port", { host: routerIp, port: p })
             .then((res) => {
-              console.log("httpPort: ", res);
+              const endpoints: string[] = JSON.parse(res);
+
+              console.log("endpoints: ", endpoints);
               setInfoMessage(`${p}: bro is http 😎`);
             })
             .catch((e) => {
+              console.error("router error: ", e);
               setInfoMessage(`${p}: bro is not http 🫵😂`);
             })
             .finally(() => setInfoMessageLoading(false));

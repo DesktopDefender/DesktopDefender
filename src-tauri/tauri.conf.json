@@ -13,13 +13,19 @@
   },
   "tauri": {
     "allowlist": {
-      "all": false,
+      "fs": {
+        "createDir": true,
+        "exists": true,
+        "readDir": true,
+        "readFile": true,
+        "scope": [
+          "$RESOURCE/*"
+        ],
+        "writeFile": true
+      },
       "shell": {
-        "all": false,
-        "execute": false,
         "open": true,
-        "scope": [],
-        "sidecar": false
+        "scope": []
       }
     },
     "bundle": {
@@ -46,7 +52,9 @@
         "providerShortName": null,
         "signingIdentity": null
       },
-      "resources": [],
+      "resources": [
+        "ouis.csv"
+      ],
       "shortDescription": "",
       "targets": "all",
       "windows": {

@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 use std::error::Error;
 use std::fs::File;
 use std::io::BufReader;
+use std::path::PathBuf;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Network {
@@ -62,7 +63,7 @@ pub fn setup_network_db() {
     .expect("Failed to create devices table");
 }
 
-pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
+pub fn setup_ouis_db(csv_path: PathBuf) -> Result<(), Box<dyn Error>> {
     /*
         Path needs to be set to src-tauri. Trying to resolve paths nested inside src-tauri for example src-tauri/db-stuff
         results in needing to include files in tauri.conf.json resources, code for resolving the paths and storing the paths
@@ -82,7 +83,9 @@ pub fn setup_ouis_db() -> Result<(), Box<dyn Error>> {
         [],
     )?;
 
-    let file = File::open("ouis.csv")?;
+    // open ouis.csv
+    let file = File::open(&csv_path)?;
+
     let mut rdr = ReaderBuilder::new()
         .has_headers(false)
         .from_reader(BufReader::new(file));

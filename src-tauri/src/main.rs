@@ -35,6 +35,8 @@ static IP_CACHE: Lazy<Mutex<HashMap<String, Info>>> = Lazy::new(|| Mutex::new(Ha
 static IP_SET: Lazy<Mutex<HashSet<Ipv4Addr>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 fn main() {
+    let _ = fix_path_env::fix(); // https://github.com/tauri-apps/fix-path-env-rs
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             call_http_port,

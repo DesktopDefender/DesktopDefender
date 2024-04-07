@@ -1,10 +1,10 @@
-use std::collections::HashSet;
-
+use base64::prelude::*;
 use regex::Regex;
 use reqwest::{Client, Response, StatusCode};
+use std::collections::HashSet;
 
 #[tauri::command]
-pub async fn call_http_port(host: &str, port: i32) -> Result<Vec<String>, String> {
+pub async fn call_http_port(host: &str, port: i32) -> Result<String, String> {
     let address = create_address_url(host, port);
 
     let client = Client::builder()
@@ -30,23 +30,31 @@ pub async fn call_http_port(host: &str, port: i32) -> Result<Vec<String>, String
     }
 
     let endpoints: Vec<String> = find_endpoints(host, port, text.as_str(), client.clone()).await;
-
     println!("Endpoints: (found {}) ", endpoints.len());
-    for e in &endpoints {
-        let url = format!("{}{}", create_address_url(host, port), e);
-        let status_code = get_status_code(url.as_str(), client.clone()).await;
 
-        if let Some(s) = status_code {
-            println!("{} - {}", s, e);
-        } else {
-            println!("ERR - {}", e);
-        }
+    let unauthorized_endpoints: Vec<String> =
+        find_unauthorized_endpoints(host, port, endpoints.clone(), client.clone()).await;
+    println!(
+        "Unauthorized endpoints: (found {}) ",
+        unauthorized_endpoints.len()
+    );
+
+    // Can't check credentials if no unauthorized pages were found
+    if unauthorized_endpoints.len() == 0 {
+        return Err("No unauthorized endpoints found".to_string());
     }
-    println!("");
 
-    return Ok(endpoints);
+    // find a random
+    let first_endpoint = format!("{}{}", address, unauthorized_endpoints[0]);
+
+    if let Some(creds) = brute_force_credentials(first_endpoint.as_str(), client.clone()).await {
+        return Ok(creds);
+    }
+    return Err("No credentials found".to_string());
 }
 
+// Given a host and a port,
+// return a valid and appropriate http url
 fn create_address_url(host: &str, port: i32) -> String {
     if port == 443 {
         return format!("https://{}:{}", host, port);
@@ -153,6 +161,28 @@ async fn find_endpoints(host: &str, port: i32, text: &str, client: Client) -> Ve
     return uniques.into_iter().collect();
 }
 
+async fn find_unauthorized_endpoints(
+    host: &str,
+    port: i32,
+    endpoints: Vec<String>,
+    client: Client,
+) -> Vec<String> {
+    let mut unauthorizeds: Vec<String> = vec![];
+
+    for e in &endpoints {
+        let url = format!("{}{}", create_address_url(host, port), e);
+        let status_code = get_status_code(url.as_str(), client.clone()).await;
+
+        if let Some(s) = status_code {
+            if s.as_u16() == 401 {
+                unauthorizeds.push(e.clone());
+            }
+        }
+    }
+
+    return unauthorizeds;
+}
+
 async fn get_status_code(url: &str, client: Client) -> Option<StatusCode> {
     let response_result = client.get(url).send().await;
 
@@ -160,4 +190,36 @@ async fn get_status_code(url: &str, client: Client) -> Option<StatusCode> {
         Ok(response) => Some(response.status()),
         Err(_) => None,
     }
+}
+
+async fn brute_force_credentials(url: &str, client: Client) -> Option<String> {
+    let credentials = vec!["admin:admin", "admin:password", "admin:Administrator"];
+
+    for c in credentials {
+        let decoded = BASE64_STANDARD.encode(c);
+        println!("{} - {}", c, decoded);
+        let auth_header = format!("Basic {}", decoded);
+        let response =
+            get_response_with_auth_header(url, auth_header.as_str(), client.clone()).await;
+
+        let status_code = response.status();
+
+        if status_code.as_u16() != 401 {
+            return Some(c.to_string());
+        } else {
+            println!("creds {c} failed at {url}");
+        }
+    }
+
+    return None;
+}
+
+async fn get_response_with_auth_header(url: &str, auth_header: &str, client: Client) -> Response {
+    let request = client
+        .get(url)
+        .header("Authorization", auth_header)
+        .send()
+        .await;
+
+    return request.unwrap();
 }

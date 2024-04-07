@@ -19,8 +19,8 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 bg-base-100 h-screen z-10">
-      <div className="drawer h-screen flex pt-8 justify-center w-20">
+    <nav className="fixed top-0 left-0 bg-base-200 h-screen z-10">
+      <div className="drawer h-screen flex pt-8 justify-center w-16">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">
           <div className="fixed border-DDOrange top-0 left-0 border-t-2 w-screen" />

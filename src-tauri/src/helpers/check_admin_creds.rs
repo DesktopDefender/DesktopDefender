@@ -25,7 +25,7 @@ pub async fn check_admin_creds(host: &str, port: i32) -> Result<Option<String>, 
     if got_redirect_response(text.as_str()) {
         let redirected = get_redirected_response(text.as_str(), client.clone(), address.as_str())
             .await
-            .unwrap();
+            .map_err(|e| e.to_string())?;
         text = redirected.text().await.map_err(|e| e.to_string())?;
     }
 
@@ -96,10 +96,13 @@ async fn get_redirected_response(
 
 fn capture_url_from_redirect_script(redirect_script: &str) -> Option<String> {
     // regex which finds the url content wrapped in single quotes
-    let rx = Regex::new(r"url\s*=\s*'([^']+)'").unwrap();
-    return rx
-        .captures(redirect_script)
-        .and_then(|caps| caps.get(1).map(|match_| match_.as_str().to_string()));
+    if let Ok(rx) = Regex::new(r"url\s*=\s*'([^']+)'") {
+        return rx
+            .captures(redirect_script)
+            .and_then(|caps| caps.get(1).map(|match_| match_.as_str().to_string()));
+    };
+
+    return None;
 }
 
 // Finds and returns a vector of the contents of script tags like these:
@@ -107,31 +110,38 @@ fn capture_url_from_redirect_script(redirect_script: &str) -> Option<String> {
 // a returned string should follow this format:
 // 'defer="defer" src="/main.1f13cbe8ee4a4f1a0848.js"'
 fn find_script_tags(http: &str) -> Vec<String> {
-    let rx = Regex::new(r"<script (.*?)></script>").unwrap();
-    let matches = rx
-        .captures_iter(http)
-        .filter_map(|cap| cap.get(1).map(|m| m.as_str().to_string()))
-        .collect();
+    if let Ok(rx) = Regex::new(r"<script (.*?)></script>") {
+        let matches = rx
+            .captures_iter(http)
+            .filter_map(|cap| cap.get(1).map(|m| m.as_str().to_string()))
+            .collect();
+        return matches;
+    }
 
-    return matches;
+    return vec![];
 }
 
 fn find_script_src(script: &str) -> Option<String> {
-    let rx = Regex::new("src\\s*=\\s*\"([^']+)\"").unwrap();
-    return rx
-        .captures(script)
-        .and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()));
+    if let Ok(rx) = Regex::new("src\\s*=\\s*\"([^']+)\"") {
+        return rx
+            .captures(script)
+            .and_then(|caps| caps.get(1).map(|m| m.as_str().to_string()));
+    };
+    return None;
 }
 
 fn find_endpoints_from_code(code: &str) -> Vec<String> {
     // find all possible endpoints within the javascript code
     let regex_pattern = r#""(/[a-zA-Z0-9\/]+)""#;
-    let rx = Regex::new(regex_pattern).unwrap();
-    let matches = rx
-        .captures_iter(code)
-        .filter_map(|cap| cap.get(1).map(|m| m.as_str().to_string()))
-        .collect();
-    return matches;
+    if let Ok(rx) = Regex::new(regex_pattern) {
+        let matches = rx
+            .captures_iter(code)
+            .filter_map(|cap| cap.get(1).map(|m| m.as_str().to_string()))
+            .collect();
+        return matches;
+    };
+
+    return vec![];
 }
 
 async fn find_endpoints(host: &str, port: i32, text: &str, client: Client) -> Vec<String> {
@@ -199,27 +209,33 @@ async fn brute_force_credentials(url: &str, client: Client) -> Option<String> {
         let decoded = BASE64_STANDARD.encode(c);
         println!("{} - {}", c, decoded);
         let auth_header = format!("Basic {}", decoded);
-        let response =
-            get_response_with_auth_header(url, auth_header.as_str(), client.clone()).await;
+        if let Ok(response) =
+            get_response_with_auth_header(url, auth_header.as_str(), client.clone()).await
+        {
+            let status_code = response.status();
 
-        let status_code = response.status();
-
-        if status_code.as_u16() != 401 {
-            return Some(c.to_string());
-        } else {
-            println!("creds {c} failed at {url}");
+            if status_code.as_u16() != 401 {
+                return Some(c.to_string());
+            } else {
+                println!("creds {c} failed at {url}");
+            }
         }
     }
 
     return None;
 }
 
-async fn get_response_with_auth_header(url: &str, auth_header: &str, client: Client) -> Response {
+async fn get_response_with_auth_header(
+    url: &str,
+    auth_header: &str,
+    client: Client,
+) -> Result<Response, String> {
     let request = client
         .get(url)
         .header("Authorization", auth_header)
         .send()
-        .await;
+        .await
+        .map_err(|e| e.to_string());
 
-    return request.unwrap();
+    return request;
 }

@@ -7,7 +7,7 @@ import { open } from "@tauri-apps/api/shell";
 import { invoke } from "@tauri-apps/api/tauri";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { Manufacturer } from "../types/Manufacturer";
+import type { Manufacturer } from "../../types/Manufacturer";
 
 export default function Router() {
   const [routerIp, setRouterIp] = useState("");

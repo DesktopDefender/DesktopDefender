@@ -20,12 +20,18 @@ export default function Navbar() {
 
   return (
     <nav className="fixed top-0 left-0 bg-base-100 h-screen z-10">
-      <div className="drawer h-screen flex items-center">
+      <div className="drawer h-screen flex pt-8 justify-center w-20">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">
-          <label htmlFor="my-drawer" className="btn btn-primary drawer-button">
-            Sidebar
+          <div className="fixed border-DDOrange top-0 left-0 border-t-2 w-screen" />
+          <label
+            htmlFor="my-drawer" className="drawer-button flex flex-col justify-between w-6 h-5"
+          >
+            <span className="block w-full h-0.5 bg-white rounded" />
+            <span className="block w-full h-0.5 bg-white rounded" />
+            <span className="block w-full h-0.5 bg-white rounded" />
           </label>
+
         </div>
 
         <div className="drawer-side">

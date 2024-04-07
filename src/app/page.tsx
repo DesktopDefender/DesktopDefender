@@ -1,32 +1,37 @@
 "use client";
 
-import DDText from "@/components/core/DDText";
-import { listen } from "@tauri-apps/api/event";
-import { useEffect, useState } from "react";
+import { ConnectionStatus } from "@/components/ConnectionStatus";
+import { Card } from "@/components/Card";
+import DDPageContainer from "@/components/DDPageContainer";
 
 export default function Home() {
-  const [connected, setConnected] = useState<boolean>(false);
-
-  useEffect(() => {
-    listen("connection_status", (e) => {
-      const payload = e.payload as boolean;
-      //const status: boolean = JSON.parse(payload);
-      setConnected(payload);
-    });
-  }, []);
-
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div>
-        <DDText className="text-3xl">Want me to protect your network?</DDText>
-        {connected ? (
-          <DDText className="text-xl text-center">Call me the defender</DDText>
-        ) : (
-          <DDText className="text-xl text-center">
-            What network little bro? 😂
-          </DDText>
-        )}
+    <DDPageContainer>
+      <div className="flex justify-center mb-4 relative">
+        <h1 className="text-3xl self-center font-bold">Desktop defender</h1>
+        <div className="absolute right-0 self-center">
+          <ConnectionStatus />
+        </div>
       </div>
-    </main>
+
+      <div className="grid grid-cols-2 gap-4">
+        <Card title="Router" body="My router" link="/router" />
+        <Card
+          title="Devices"
+          body="See which devices are on you network"
+          link="/devices"
+        />
+        <Card
+          title="Traffic"
+          body="See statistics about your network traffic and usage"
+          link="/monitor"
+        />
+        <Card
+          title="Settings"
+          body="Configure Desktop Defender to your liking"
+          link="/"
+        />
+      </div>
+    </DDPageContainer>
   );
 }

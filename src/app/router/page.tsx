@@ -3,11 +3,17 @@
 import DDPageContainer from "@/components/DDPageContainer";
 import DDText from "@/components/core/DDText";
 import ExternalLink from "@/components/core/ExternalLink";
-import { open } from "@tauri-apps/api/shell";
 import { invoke } from "@tauri-apps/api/tauri";
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Manufacturer } from "../../types/Manufacturer";
+
+enum AdminCredentials {
+  FOUND = "FOUND",
+  NOT_FOUND = "NOT_FOUND",
+  ERROR = "ERROR",
+  UNKNOWN = "UNKNOWN",
+  LOADING = "LOADING",
+}
 
 export default function Router() {
   const [routerIp, setRouterIp] = useState("");
@@ -18,8 +24,9 @@ export default function Router() {
   const [openPortsLoading, setOpenPortsLoading] = useState(false);
   const [routerVendor, setRouterVendor] = useState("");
   const [routerVendorLoading, setRouterVendorLoading] = useState(false);
-
-  const [infoMessage, setInfoMessage] = useState("");
+  const [adminCreds, setAdminCreds] = useState<AdminCredentials>(
+    AdminCredentials.UNKNOWN,
+  );
 
   // function declared using "function"
   function getRouterIp() {
@@ -56,7 +63,7 @@ export default function Router() {
 
   function getOpenPortsFromIp(ip: string) {
     setOpenPortsLoading(true);
-    invoke<number[]>("find_open_ports", { ip: ip, inPorts: [80, 443] })
+    invoke<number[]>("find_open_ports", { ip: ip, inPorts: [53, 80, 443] })
       .then((ports) => {
         console.log("ports: ", ports);
         setOpenPorts(ports);
@@ -87,25 +94,23 @@ export default function Router() {
     getVendorFromMac(routerMac);
   }, [routerMac]);
 
-  const renderPorts = (ports: number[]) => {
-    return ports.map((p) => (
-      <button
-        key={p}
-        type="button"
-        className="px-2 py-1 w-14 text-center rounded-md bg-slate-500 hover:bg-slate-600 active:bg-slate-700"
-        onClick={() => {
-          invoke<string>("call_http_port", { host: routerIp, port: p }).then(
-            (res) => {
-              console.log("httpPort: ", res);
-              if (res) setInfoMessage(`port ${p} success 😎`);
-              else setInfoMessage(`port ${p} not success 🫵😂`);
-            },
-          );
-        }}
-      >
-        {p}
-      </button>
-    ));
+  const checkCredentials = (port: number) => {
+    setAdminCreds(AdminCredentials.LOADING);
+
+    invoke<string | null>("check_admin_creds", { host: routerIp, port: port })
+      .then((res) => {
+        console.log("creds: ", res);
+
+        if (!res) {
+          setAdminCreds(AdminCredentials.NOT_FOUND);
+        } else {
+          setAdminCreds(AdminCredentials.FOUND);
+        }
+      })
+      .catch((e) => {
+        console.error("router error: ", e);
+        setAdminCreds(AdminCredentials.ERROR);
+      });
   };
 
   return (
@@ -129,19 +134,43 @@ export default function Router() {
           {openPortsLoading ? (
             <DDText>"Loading..."</DDText>
           ) : (
-            renderPorts(openPorts)
+            <DDText>{`${openPorts.length} ports found`}</DDText>
           )}
         </div>
-        {openPorts.includes(80) ||
-          (openPorts.includes(443) && (
+        {(openPorts.includes(80) || openPorts.includes(443)) && (
+          <div className="flex justify-between items-center my-4">
             <ExternalLink
               className="bg-slate-600 hover:bg-slate-700 active:bg-slate-800 px-2 py-1 rounded-md"
               url={`http${openPorts.includes(443) ? "s" : ""}://${routerIp}`}
             >
               Admin Portal
             </ExternalLink>
-          ))}
-        <DDText>{infoMessage}</DDText>
+            <div>
+              <button
+                type="button"
+                onClick={() =>
+                  checkCredentials(openPorts.includes(443) ? 443 : 80)
+                }
+                className="bg-blue-400 p-2 rounded-sm"
+              >
+                Check admin credentials
+              </button>
+              {adminCreds !== AdminCredentials.UNKNOWN && (
+                <DDText>
+                  {adminCreds === AdminCredentials.LOADING
+                    ? "Loading..."
+                    : adminCreds === AdminCredentials.ERROR
+                      ? "Error checking creds"
+                      : adminCreds === AdminCredentials.NOT_FOUND
+                        ? "No credentials found"
+                        : adminCreds === AdminCredentials.FOUND
+                          ? "CREDENTIALS FOR ROUTER FOUND"
+                          : "unknown..."}
+                </DDText>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </DDPageContainer>
   );

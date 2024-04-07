@@ -25,13 +25,13 @@ export default function Navbar() {
         <div className="drawer-content">
           <div className="fixed border-DDOrange top-0 left-0 border-t-2 w-screen" />
           <label
-            htmlFor="my-drawer" className="drawer-button flex flex-col justify-between w-6 h-5"
+            htmlFor="my-drawer"
+            className="drawer-button flex flex-col justify-between w-6 h-5"
           >
             <span className="block w-full h-0.5 bg-white rounded" />
             <span className="block w-full h-0.5 bg-white rounded" />
             <span className="block w-full h-0.5 bg-white rounded" />
           </label>
-
         </div>
 
         <div className="drawer-side">

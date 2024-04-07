@@ -145,7 +145,7 @@ fn find_endpoints_from_code(code: &str) -> Vec<String> {
 }
 
 async fn find_endpoints(host: &str, port: i32, text: &str, client: Client) -> Vec<String> {
-    let mut endpoints: Vec<String> = vec![];
+    let mut endpoints: Vec<String> = vec!["/".to_string()]; // The root endpoint can be included
     let scripts = find_script_tags(text);
 
     for script in scripts {
@@ -207,7 +207,7 @@ async fn brute_force_credentials(url: &str, client: Client) -> Option<String> {
 
     for c in credentials {
         let decoded = BASE64_STANDARD.encode(c);
-        println!("{} - {}", c, decoded);
+        // println!("{} - {}", c, decoded);
         let auth_header = format!("Basic {}", decoded);
         if let Ok(response) =
             get_response_with_auth_header(url, auth_header.as_str(), client.clone()).await
@@ -217,7 +217,7 @@ async fn brute_force_credentials(url: &str, client: Client) -> Option<String> {
             if status_code.as_u16() != 401 {
                 return Some(c.to_string());
             } else {
-                println!("creds {c} failed at {url}");
+                println!("creds {c} | {decoded} failed at {url}");
             }
         }
     }

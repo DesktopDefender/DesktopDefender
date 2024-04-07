@@ -52,8 +52,14 @@ fn main() {
             dotenv().ok();
             let api_key = env::var("IPINFO_TOKEN").expect("IPINFO_TOKEN must be set");
 
+            // access embedded file
+            let csv_path = app
+                .path_resolver()
+                .resolve_resource("ouis.csv")
+                .expect("failed to resolve ouis.csv");
+
             setup_network_db();
-            let _ = setup_ouis_db();
+            let _ = setup_ouis_db(csv_path);
 
             init_connection_listener(app.get_window("main").expect("Failed to get main window"));
 

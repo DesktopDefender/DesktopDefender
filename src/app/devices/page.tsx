@@ -1,36 +1,21 @@
 "use client";
 
-import { invoke } from "@tauri-apps/api";
 import { emit } from "@tauri-apps/api/event";
 import { listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
-
-interface Network {
-  mac_address: string;
-  ip_address: string;
-  manufacturer: string;
-  country: string;
-}
-
-interface Device {
-  mac_address: string;
-  ip_address: string;
-  hostname: string;
-  manufacturer: string;
-  country: string;
-  date_added: string;
-}
+import type { Device } from "../../types/Device";
+import type { Network } from "../../types/Network";
 
 export default function Devices() {
   const [network, setNetwork] = useState<Network | undefined>(undefined);
   const [devices, setDevices] = useState<Device[]>([]);
 
   useEffect(() => {
-    invoke("get_router_info")
+    invoke<string>("get_router_info")
       .then((response) => {
-        const network: Network = JSON.parse(response as string);
+        const network: Network = JSON.parse(response);
         setNetwork(network);
-
         initalize_devices(network.mac_address, network.ip_address);
       })
       .catch((error) =>
@@ -45,23 +30,26 @@ export default function Devices() {
   }, [network?.mac_address]);
 
   function initalize_devices(router_mac: string, router_ip: string) {
-    invoke("initalize_devices", { routerMac: router_mac, routerIp: router_ip })
+    invoke<string>("initalize_devices", {
+      routerMac: router_mac,
+      routerIp: router_ip,
+    })
       .then((response) => {
-        const devicesArray: Device[] = JSON.parse(response as string);
+        const devicesArray: Device[] = JSON.parse(response);
         setDevices(devicesArray);
         console.log(devicesArray);
       })
-      .catch((error) =>
-        console.error("Error fetching network devices:", error),
-      );
+      .catch((error) => {
+        console.error("Error fetching network devices:", error);
+      });
 
     emit("hostname_request", { router_mac: router_mac });
   }
 
   function get_network_info(routerMac: string) {
-    invoke("get_network_info", { routerMac: routerMac })
+    invoke<string>("get_network_info", { routerMac: routerMac })
       .then((response) => {
-        const devicesArray: Device[] = JSON.parse(response as string);
+        const devicesArray: Device[] = JSON.parse(response);
         setDevices(devicesArray);
         console.log(devicesArray);
       })
@@ -74,7 +62,6 @@ export default function Devices() {
     const interval = setInterval(() => {
       emit("hostname_request", { router_mac: network?.mac_address });
     }, 30000);
-
     return () => clearInterval(interval);
   }, [network?.mac_address]);
 

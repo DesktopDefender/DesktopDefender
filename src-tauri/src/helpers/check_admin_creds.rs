@@ -4,7 +4,7 @@ use reqwest::{Client, Response, StatusCode};
 use std::collections::HashSet;
 
 #[tauri::command]
-pub async fn call_http_port(host: &str, port: i32) -> Result<String, String> {
+pub async fn check_admin_creds(host: &str, port: i32) -> Result<Option<String>, String> {
     let address = create_address_url(host, port);
 
     let client = Client::builder()
@@ -48,9 +48,9 @@ pub async fn call_http_port(host: &str, port: i32) -> Result<String, String> {
     let first_endpoint = format!("{}{}", address, unauthorized_endpoints[0]);
 
     if let Some(creds) = brute_force_credentials(first_endpoint.as_str(), client.clone()).await {
-        return Ok(creds);
+        return Ok(Some(creds));
     }
-    return Err("No credentials found".to_string());
+    return Ok(None);
 }
 
 // Given a host and a port,

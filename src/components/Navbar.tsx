@@ -19,7 +19,7 @@ export default function Navbar() {
   };
 
   return (
-    <nav className="fixed top-0 left-0 bg-slate-900 h-screen">
+    <nav className="fixed top-0 left-0 bg-base-100 h-screen z-10">
       <div className="drawer h-screen flex items-center">
         <input id="my-drawer" type="checkbox" className="drawer-toggle" />
         <div className="drawer-content">
@@ -34,7 +34,7 @@ export default function Navbar() {
             aria-label="close sidebar"
             className="drawer-overlay"
           />
-          <ul className="menu p-4 w-80 min-h-full bg-base-200 text-base-content">
+          <ul className="menu p-4 w-52 min-h-full bg-base-200 text-base-content">
             {renderItems()}
           </ul>
         </div>

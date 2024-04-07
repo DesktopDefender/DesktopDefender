@@ -7,8 +7,13 @@ import DDPageContainer from "@/components/DDPageContainer";
 export default function Home() {
   return (
     <DDPageContainer>
-      <ConnectionStatus />
-      <h1 className="self-center text-3xl font-bold mb-4">Desktop defender</h1>
+      <div className="flex justify-center mb-4 relative">
+        <h1 className="text-3xl self-center font-bold">Desktop defender</h1>
+        <div className="absolute right-0 self-center">
+          <ConnectionStatus />
+        </div>
+      </div>
+
       <div className="grid grid-cols-2 gap-4">
         <Card title="Router" body="My router" link="/router" />
         <Card

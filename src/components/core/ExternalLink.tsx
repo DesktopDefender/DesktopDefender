@@ -3,7 +3,7 @@ import Link from "next/link";
 
 interface Props {
   className: string;
-  children: string;
+  children: string | JSX.Element | JSX.Element[];
   url: string;
 }
 

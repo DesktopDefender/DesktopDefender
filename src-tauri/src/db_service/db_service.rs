@@ -162,8 +162,6 @@ pub fn add_to_networks_table(
     manufacturer: &str,
     country: &str,
 ) -> Result<()> {
-    println!("add_to_networks_table");
-
     let cleaned_mac = clean_mac_address(router_mac);
     let exists: bool = conn.query_row(
         "SELECT EXISTS(SELECT 1 FROM networks WHERE router_mac = ?1)",
@@ -172,10 +170,6 @@ pub fn add_to_networks_table(
     )?;
 
     if !exists {
-        println!(
-            "Adding network with MAC address {}, IP address {}, and manufacturer {}",
-            cleaned_mac, ip_address, manufacturer
-        );
         conn.execute(
             "INSERT INTO networks (router_mac, ip_address, manufacturer, country) VALUES (?, ?, ?, ?)",
             rusqlite::params![cleaned_mac, ip_address, manufacturer, country],
@@ -197,7 +191,6 @@ pub fn add_to_device_table(
     let cleaned_router = clean_mac_address(router_mac);
 
     if cleaned_mac == cleaned_router {
-        println!("Skipped adding device as it matches router MAC");
         return Ok(());
     }
 
@@ -210,10 +203,6 @@ pub fn add_to_device_table(
     if !exists {
         let date_added = Local::now().format("%d/%m/%y").to_string();
 
-        println!(
-            "Adding device with MAC address {}, IP address {}, and manufacturer {} to router MAC {}",
-            cleaned_mac, ip_address, manufacturer, cleaned_router
-        );
         conn.execute(
             "INSERT INTO devices (mac_address, router_mac, ip_address, manufacturer, country, hostname, date_added) VALUES (?, ?, ?, ?, ?, ?, ?)",
             rusqlite::params![cleaned_mac, cleaned_router, ip_address, manufacturer, country, "Unknown", date_added],
@@ -229,8 +218,6 @@ pub fn add_hostname(
     router_mac: &str,
     new_hostname: &str,
 ) -> Result<()> {
-    println!("add_hostname");
-
     let cleaned_mac = clean_mac_address(mac_address);
     let cleaned_router = clean_mac_address(router_mac);
 
@@ -240,19 +227,10 @@ pub fn add_hostname(
         |row| row.get(0),
     )?;
     if exists {
-        println!(
-            "Updating device with MAC address {} for router MAC {} with new hostname '{}'",
-            cleaned_mac, cleaned_router, new_hostname
-        );
         conn.execute(
             "UPDATE devices SET hostname = ?3 WHERE mac_address = ?1 AND router_mac = ?2",
             params![cleaned_mac, cleaned_router, new_hostname],
         )?;
-    } else {
-        println!(
-            "Device with MAC address {} and router MAC {} not found, cannot update hostname.",
-            cleaned_mac, cleaned_router
-        );
     }
 
     Ok(())

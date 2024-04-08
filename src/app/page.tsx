@@ -8,7 +8,7 @@ export default function Home() {
   return (
     <DDPageContainer>
       <div className="flex justify-center mb-4 relative">
-        <h1 className="text-3xl self-center font-bold">Desktop defender</h1>
+        <h1 className="text-3xl self-center font-bold">Desktop Defender</h1>
         <div className="absolute right-0 self-center">
           <ConnectionStatus />
         </div>

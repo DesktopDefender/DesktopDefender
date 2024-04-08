@@ -127,8 +127,6 @@ pub fn initalize_devices(router_mac: &str, router_ip: &str) -> Result<String, St
                 router_mac,
             )
             .map_err(|e| e.to_string())?;
-        } else {
-            println!("not a valid device ip {}", entry.ip_address);
         }
     }
 
@@ -192,7 +190,6 @@ pub fn handle_hostname_request(
     app_handle: AppHandle,
     event_payload: Option<String>,
 ) -> Result<(), Box<dyn Error>> {
-    println!("handle_hostname_request");
     let req: HostnameRequest = serde_json::from_str(&event_payload.unwrap())?;
     resolve_network_hostnames(&req.router_mac, &app_handle); //?
     Ok(())
@@ -207,13 +204,10 @@ pub fn resolve_network_hostnames(router_mac: &str, app_handle: &AppHandle) {
 
     match get_network_devices(&network_conn, router_mac) {
         Ok(devices) => {
-            let mut found_hostname = false;
-
             for device in devices {
                 if device.hostname == "Unknown" {
                     let new_hostname = resolve_hostname(&device.ip_address);
                     if new_hostname != "Unknown" {
-                        println!("{:?} --- Hostname found {}", device, new_hostname);
                         let _ = add_hostname(
                             &network_conn,
                             &device.mac_address,
@@ -221,14 +215,10 @@ pub fn resolve_network_hostnames(router_mac: &str, app_handle: &AppHandle) {
                             &new_hostname,
                         );
 
-                        found_hostname = true;
+                        if let Err(e) = app_handle.emit_all("hostname_found", ()) {
+                            eprintln!("Error emitting 'hostname_found': {:?}", e);
+                        }
                     }
-                }
-            }
-
-            if found_hostname {
-                if let Err(e) = app_handle.emit_all("hostname_found", ()) {
-                    eprintln!("Error emitting 'hostname_found': {:?}", e);
                 }
             }
         }
@@ -237,31 +227,21 @@ pub fn resolve_network_hostnames(router_mac: &str, app_handle: &AppHandle) {
 }
 
 fn resolve_hostname(ip_address: &str) -> String {
-    println!("resolving for {}", ip_address);
-
+    println!("Resolving for {}", ip_address);
     let output = Command::new("dig")
-        .args(["-x", &ip_address, "-p", "5353", "@224.0.0.251", "+short"])
+        .args(["-x", ip_address, "-p", "5353", "@224.0.0.251", "+short"])
         .output();
 
     match output {
         Ok(output) if output.status.success() => {
             let stdout = String::from_utf8_lossy(&output.stdout).trim().to_string();
-            println!("Command output: {}", stdout);
             if !stdout.is_empty() {
                 stdout
             } else {
-                println!("No hostname found for IP: {}", ip_address);
                 "Unknown".to_string()
             }
         }
-        Ok(output) => {
-            let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
-            println!("dig command failed: {}", stderr);
-            "Unknown".to_string()
-        }
-        Err(e) => {
-            println!("Failed to execute dig command: {}", e);
-            "Unknown".to_string()
-        }
+        Ok(_) => "Unknown".to_string(),
+        Err(_) => "Unknown".to_string(),
     }
 }

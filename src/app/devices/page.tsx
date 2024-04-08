@@ -1,5 +1,6 @@
 "use client";
 
+import DDPageContainer from "@/components/DDPageContainer";
 import { emit } from "@tauri-apps/api/event";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/tauri";
@@ -66,17 +67,8 @@ export default function Devices() {
   }, [network?.mac_address]);
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-between p-2">
-      <div className="text-center">
-        <p className="m-10 mb-2 text-3xl">Your router</p>
-        <div className="w-96 h-32 rounded-lg bg-DDOrange m-12 mt-0 p-4">
-          <p>{network?.manufacturer}</p>
-          <p>IP Address: {network?.ip_address}</p>
-          <p>MAC Address: {network?.mac_address}</p>
-          <p>{network?.country}</p>
-        </div>
-      </div>
-
+    <DDPageContainer>
+      <h1 className="text-center text-3xl p-4">My Devices</h1>
       <div className="overflow-x-auto">
         <table className="table table-zebra">
           <thead>
@@ -90,21 +82,25 @@ export default function Devices() {
               <th>Registered</th>
             </tr>
           </thead>
-          <tbody>
-            {devices.map((entry, index) => (
-              <tr>
-                <th>{index + 1}</th>
-                <td>{entry.ip_address}</td>
-                <td>{entry.mac_address}</td>
-                <td>{entry.hostname}</td>
-                <td>{entry.manufacturer}</td>
-                <td>{entry.country}</td>
-                <td>{entry.date_added}</td>
-              </tr>
-            ))}
-          </tbody>
         </table>
+        <div className="overflow-y-auto no-scrollbar max-h-96">
+          <table className="table table-zebra">
+            <tbody>
+              {devices.map((entry, index) => (
+                <tr>
+                  <th>{index + 1}</th>
+                  <td>{entry.ip_address}</td>
+                  <td>{entry.mac_address}</td>
+                  <td>{entry.hostname}</td>
+                  <td>{entry.manufacturer}</td>
+                  <td>{entry.country}</td>
+                  <td>{entry.date_added}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
       </div>
-    </main>
+    </DDPageContainer>
   );
 }

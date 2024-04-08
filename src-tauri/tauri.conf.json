@@ -13,13 +13,19 @@
   },
   "tauri": {
     "allowlist": {
-      "all": false,
+      "fs": {
+        "createDir": true,
+        "exists": true,
+        "readDir": true,
+        "readFile": true,
+        "scope": [
+          "$RESOURCE/*"
+        ],
+        "writeFile": true
+      },
       "shell": {
-        "all": false,
-        "execute": false,
         "open": true,
-        "scope": [],
-        "sidecar": false
+        "scope": []
       }
     },
     "bundle": {
@@ -31,13 +37,12 @@
       },
       "externalBin": [],
       "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
+        "icons/DD32x32.png",
+        "icons/DD128x128.png",
+        "icons/DD128x128@2x.png",
+        "icons/DD.icns"
       ],
-      "identifier": "com.tauri.dev",
+      "identifier": "app.desktopdefender",
       "longDescription": "",
       "macOS": {
         "entitlements": null,
@@ -46,7 +51,9 @@
         "providerShortName": null,
         "signingIdentity": null
       },
-      "resources": [],
+      "resources": [
+        "ouis.csv"
+      ],
       "shortDescription": "",
       "targets": "all",
       "windows": {

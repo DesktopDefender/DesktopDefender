@@ -5,7 +5,7 @@ import DDText from "@/components/core/DDText";
 import ExternalLink from "@/components/core/ExternalLink";
 import { invoke } from "@tauri-apps/api/tauri";
 import { useEffect, useState } from "react";
-import type { Manufacturer } from "../types/Manufacturer";
+import type { Manufacturer } from "../../types/Manufacturer";
 
 enum AdminCredentials {
   FOUND = "FOUND",

@@ -21,11 +21,11 @@ use crate::router::find_ip::find_ip;
 use crate::router::find_mac::find_mac_address;
 
 use devices::devices::handle_hostname_request;
-use dotenvy::dotenv;
 use network_monitor::info::Info;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 use std::env;
+use std::fs;
 use std::net::Ipv4Addr;
 use tauri::Manager;
 use tokio::sync::Mutex;
@@ -35,6 +35,10 @@ static IP_CACHE: Lazy<Mutex<HashMap<String, Info>>> = Lazy::new(|| Mutex::new(Ha
 static IP_SET: Lazy<Mutex<HashSet<Ipv4Addr>>> = Lazy::new(|| Mutex::new(HashSet::new()));
 
 fn main() {
+    let _ = fix_path_env::fix(); // https://github.com/tauri-apps/fix-path-env-rs
+
+    create_dd_path();
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             check_admin_creds,
@@ -47,11 +51,18 @@ fn main() {
             initalize_devices,
         ])
         .setup(|app| {
-            dotenv().ok();
-            let api_key = env::var("IPINFO_TOKEN").expect("IPINFO_TOKEN must be set");
+            let api_key = option_env!("IPINFO_TOKEN")
+                .expect("IPINFO_TOKEN is missing in your env...")
+                .to_string();
+
+            // access embedded file
+            let csv_path = app
+                .path_resolver()
+                .resolve_resource("ouis.csv")
+                .expect("failed to resolve ouis.csv");
 
             setup_network_db();
-            let _ = setup_ouis_db();
+            let _ = setup_ouis_db(csv_path);
 
             init_connection_listener(app.get_window("main").expect("Failed to get main window"));
 
@@ -75,4 +86,15 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn create_dd_path() {
+    let mut dd_path = dirs::home_dir().unwrap();
+    dd_path.push(".dd/");
+
+    if dd_path.exists() {
+        println!("path ~/.dd/ already exists");
+    } else {
+        fs::create_dir(dd_path).expect("Error creating ~/.dd/ dir, aborting...");
+    }
 }

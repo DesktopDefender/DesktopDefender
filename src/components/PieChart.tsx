@@ -1,6 +1,12 @@
 import { listen } from "@tauri-apps/api/event";
-import { Pie } from "react-chartjs-2";
+import type {
+  CoreChartOptions,
+  DatasetChartOptions,
+  ElementChartOptions,
+  PluginChartOptions,
+} from "chart.js";
 import { useEffect, useRef, useState } from "react";
+import { Pie } from "react-chartjs-2";
 
 interface IPCache {
   [ipAddress: string]: IpInfo;
@@ -83,7 +89,9 @@ export const CountryPieChart = () => {
     return countryColors[country];
   }
 
-  const options = {
+  // I'm sorry Hävard please don't be mad 😭
+  // biome-ignore lint/suspicious/noExplicitAny: <explanation>
+  const options: any = {
     maintainAspectRatio: false,
     aspectRatio: 4,
     responsive: true,

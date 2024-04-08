@@ -25,6 +25,7 @@ use network_monitor::info::Info;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
 use std::env;
+use std::fs;
 use std::net::Ipv4Addr;
 use tauri::Manager;
 use tokio::sync::Mutex;
@@ -35,6 +36,8 @@ static IP_SET: Lazy<Mutex<HashSet<Ipv4Addr>>> = Lazy::new(|| Mutex::new(HashSet:
 
 fn main() {
     let _ = fix_path_env::fix(); // https://github.com/tauri-apps/fix-path-env-rs
+
+    create_dd_path();
 
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
@@ -83,4 +86,15 @@ fn main() {
         })
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
+}
+
+fn create_dd_path() {
+    let mut dd_path = dirs::home_dir().unwrap();
+    dd_path.push(".dd/");
+
+    if dd_path.exists() {
+        println!("path ~/.dd/ already exists");
+    } else {
+        fs::create_dir(dd_path).expect("Error creating ~/.dd/ dir, aborting...");
+    }
 }

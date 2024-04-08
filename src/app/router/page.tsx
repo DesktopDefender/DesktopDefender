@@ -163,7 +163,7 @@ export default function Router() {
                     ? "alert alert-info text-white"
                     : adminCreds === AdminCredentials.FOUND
                       ? "alert alert-error text-white"
-                      : "alert alert-info text-white"
+                      : "text-gray-500"
             }`}
           >
             {adminCreds === AdminCredentials.LOADING

@@ -48,7 +48,9 @@ fn main() {
             initalize_devices,
         ])
         .setup(|app| {
-            let api_key = option_env!("IPINFO_TOKEN").unwrap().to_string();
+            let api_key = option_env!("IPINFO_TOKEN")
+                .expect("IPINFO_TOKEN is missing in your env...")
+                .to_string();
 
             // access embedded file
             let csv_path = app

@@ -115,32 +115,26 @@ export default function Router() {
 
   return (
     <DDPageContainer>
-      <div className="flex-grow">
-        <DDText className="text-3xl mx-10 text-center">My Router</DDText>
-        <div className="flex justify-between">
-          <DDText className="">IP:</DDText>
-          <DDText>{routerIpLoading ? "Loading..." : routerIp}</DDText>
-        </div>
-        <div className="flex justify-between">
-          <DDText className="">MAC:</DDText>
-          <DDText>{routerMacLoading ? "Loading..." : routerMac}</DDText>
-        </div>
-        <div className="flex justify-between">
-          <DDText className="">Vendor:</DDText>
-          <DDText>{routerVendorLoading ? "Loading..." : routerVendor}</DDText>
-        </div>
-        <div className="flex justify-between">
-          <DDText className="">Open ports:</DDText>
+      <div className="self-center card w-full bg-base-200 shadow-xl my-4">
+        <div className="card-body">
+          <h2 className="card-title">Router Information</h2>
+          <p>
+            Router Vendor: {routerVendorLoading ? "Loading..." : routerVendor}
+          </p>
+          <p>IP Address: {routerIpLoading ? "Loading..." : routerIp}</p>
+          <p>Mac Address: {routerMacLoading ? "Loading..." : routerMac}</p>
           {openPortsLoading ? (
             <DDText>"Loading..."</DDText>
           ) : (
             <DDText>{`${openPorts.length} ports found`}</DDText>
           )}
         </div>
+      </div>
+      <div className="flex-grow">
         {(openPorts.includes(80) || openPorts.includes(443)) && (
-          <div className="flex justify-between items-center my-4">
+          <div className="flex justify-center gap-10 items-center mt-24 mb-12">
             <ExternalLink
-              className="bg-slate-600 hover:bg-slate-700 active:bg-slate-800 px-2 py-1 rounded-md"
+              className="btn btn-outline btn-primary btn-lg"
               url={`http${openPorts.includes(443) ? "s" : ""}://${routerIp}`}
             >
               Admin Portal
@@ -151,26 +145,38 @@ export default function Router() {
                 onClick={() =>
                   checkCredentials(openPorts.includes(443) ? 443 : 80)
                 }
-                className="bg-blue-400 p-2 rounded-sm"
+                className="btn btn-outline btn-primary btn-lg"
               >
-                Check admin credentials
+                Admin Credentials
               </button>
-              {adminCreds !== AdminCredentials.UNKNOWN && (
-                <DDText>
-                  {adminCreds === AdminCredentials.LOADING
-                    ? "Loading..."
-                    : adminCreds === AdminCredentials.ERROR
-                      ? "Error checking creds"
-                      : adminCreds === AdminCredentials.NOT_FOUND
-                        ? "No credentials found"
-                        : adminCreds === AdminCredentials.FOUND
-                          ? "CREDENTIALS FOR ROUTER FOUND"
-                          : "unknown..."}
-                </DDText>
-              )}
             </div>
           </div>
         )}
+        <div className="flex justify-center items-center h-full">
+          <div
+            className={`text-center font-bold p-4 rounded ${
+              adminCreds === AdminCredentials.LOADING
+                ? "loading loading-spinner loading-md text-neutral"
+                : adminCreds === AdminCredentials.ERROR
+                  ? "alert alert-warning text-white"
+                  : adminCreds === AdminCredentials.NOT_FOUND
+                    ? "alert alert-info text-white"
+                    : adminCreds === AdminCredentials.FOUND
+                      ? "alert alert-error text-white"
+                      : "alert alert-info text-white"
+            }`}
+          >
+            {adminCreds === AdminCredentials.LOADING
+              ? "Loading..."
+              : adminCreds === AdminCredentials.ERROR
+                ? "Error checking creds, Router Type not supported yet"
+                : adminCreds === AdminCredentials.NOT_FOUND
+                  ? "No credentials found"
+                  : adminCreds === AdminCredentials.FOUND
+                    ? "CREDENTIALS FOR ROUTER FOUND, Please update your password"
+                    : "Admin Credentials not checked"}
+          </div>
+        </div>
       </div>
     </DDPageContainer>
   );

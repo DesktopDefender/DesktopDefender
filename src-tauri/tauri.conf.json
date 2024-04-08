@@ -37,11 +37,10 @@
       },
       "externalBin": [],
       "icon": [
-        "icons/32x32.png",
-        "icons/128x128.png",
-        "icons/128x128@2x.png",
-        "icons/icon.icns",
-        "icons/icon.ico"
+        "icons/DD32x32.png",
+        "icons/DD128x128.png",
+        "icons/DD128x128@2x.png",
+        "icons/DD.icns"
       ],
       "identifier": "app.desktopdefender",
       "longDescription": "",

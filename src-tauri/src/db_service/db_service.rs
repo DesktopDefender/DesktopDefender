@@ -33,7 +33,9 @@ pub fn setup_network_db() {
         tauri.conf.json resources.
         Storing it in src-tauri is the easiest solution for now.
     */
-    let conn = Connection::open("network.db").expect("Failed to open database");
+    let mut db_dir = dirs::home_dir().unwrap();
+    db_dir.push(".dd/network.db");
+    let conn = Connection::open(db_dir).expect("Failed to open database");
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS networks (
@@ -72,7 +74,9 @@ pub fn setup_ouis_db(csv_path: PathBuf) -> Result<(), Box<dyn Error>> {
         Storing it in src-tauri is the easiest solution for now.
     */
 
-    let mut conn = Connection::open("ouis.db")?;
+    let mut db_dir = dirs::home_dir().unwrap();
+    db_dir.push(".dd/ouis.db");
+    let mut conn = Connection::open(db_dir)?;
 
     conn.execute(
         "CREATE TABLE IF NOT EXISTS manufacturers (
@@ -280,7 +284,9 @@ pub struct OuiResponse {
 
 #[tauri::command]
 pub fn get_manufacturer_by_mac(mac_address: &str) -> Result<String, String> {
-    let ouis_conn = Connection::open("ouis.db").map_err(|e| e.to_string())?;
+    let mut db_dir = dirs::home_dir().unwrap();
+    db_dir.push(".dd/ouis.db");
+    let ouis_conn = Connection::open(db_dir).map_err(|e| e.to_string())?;
 
     let oui = clean_mac_address(mac_address)
         .replace(":", "")

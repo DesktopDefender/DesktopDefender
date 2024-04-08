@@ -14,8 +14,13 @@ use crate::db_service::db_service::{
 
 #[tauri::command]
 pub fn get_router_info() -> Result<String, String> {
-    let network_conn = Connection::open("network.db").expect("Failed to open database");
-    let ouis_conn = Connection::open("ouis.db").expect("Failed to open database");
+    let mut network_db = dirs::home_dir().unwrap();
+    network_db.push(".dd/network.db");
+    let network_conn = Connection::open(network_db).expect("Failed to open database");
+
+    let mut ouis_db = dirs::home_dir().unwrap();
+    ouis_db.push(".dd/ouis.db");
+    let ouis_conn = Connection::open(ouis_db).expect("Failed to open database");
 
     let ip_output = Command::new("sh")
         .arg("-c")
@@ -97,8 +102,13 @@ fn is_valid_device_ip(device_ip: &str, router_ip: &str) -> bool {
 // TODO PORT SCAN, ONLY NEEDS ON LOAD
 #[tauri::command]
 pub fn initalize_devices(router_mac: &str, router_ip: &str) -> Result<String, String> {
-    let network_conn = Connection::open("network.db").expect("Failed to open database");
-    let ouis_conn = Connection::open("ouis.db").expect("Failed to open database");
+    let mut network_db = dirs::home_dir().unwrap();
+    network_db.push(".dd/network.db");
+    let network_conn = Connection::open(network_db).expect("Failed to open database");
+
+    let mut ouis_db = dirs::home_dir().unwrap();
+    ouis_db.push(".dd/ouis.db");
+    let ouis_conn = Connection::open(ouis_db).expect("Failed to open database");
 
     let arp_entries = get_arp_table().map_err(|e| e.to_string())?;
 
@@ -130,7 +140,9 @@ pub fn initalize_devices(router_mac: &str, router_ip: &str) -> Result<String, St
 
 #[tauri::command]
 pub fn get_network_info(router_mac: &str) -> Result<String, String> {
-    let network_conn = Connection::open("network.db").expect("Failed to open database");
+    let mut network_db = dirs::home_dir().unwrap();
+    network_db.push(".dd/network.db");
+    let network_conn = Connection::open(network_db).expect("Failed to open database");
 
     match get_network_devices(&network_conn, router_mac) {
         Ok(devices) => serde_json::to_string(&devices).map_err(|e| e.to_string()),
@@ -189,7 +201,9 @@ pub fn handle_hostname_request(
 pub fn resolve_network_hostnames(router_mac: &str, app_handle: &AppHandle) {
     println!("resolve_hostname, router_mac: {}", router_mac);
 
-    let network_conn = Connection::open("network.db").expect("Failed to open database");
+    let mut network_db = dirs::home_dir().unwrap();
+    network_db.push(".dd/network.db");
+    let network_conn = Connection::open(network_db).expect("Failed to open database");
 
     match get_network_devices(&network_conn, router_mac) {
         Ok(devices) => {

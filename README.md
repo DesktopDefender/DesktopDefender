@@ -1,3 +1,42 @@
+
+# Desktop Defender Setup Guide
+
+
+Signup at https://ipinfo.io/developers to get your API token.
+Then set the token as an environment variable:
+
+```bash
+export IPINFO_TOKEN="token"
+```
+
+Next clone the repository:
+
+```bash
+git clone https://github.com/DesktopDefender/DesktopDefender.git
+```
+
+Open the root folder and install node modules:
+```bash
+cd DesktopDefender
+npm install
+```
+
+Then you have two options, either run or build the project to run it as an application on your device:
+
+## Run
+```bash
+npm run tauri dev
+```
+
+## Build
+```bash
+npm run tauri build
+```
+
+
+
+
+
 This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
 
 ## Getting Started

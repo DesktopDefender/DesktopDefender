@@ -21,7 +21,6 @@ use crate::router::find_ip::find_ip;
 use crate::router::find_mac::find_mac_address;
 
 use devices::devices::handle_hostname_request;
-use dotenvy::dotenv;
 use network_monitor::info::Info;
 use once_cell::sync::Lazy;
 use std::collections::{HashMap, HashSet};
@@ -49,8 +48,7 @@ fn main() {
             initalize_devices,
         ])
         .setup(|app| {
-            dotenv().ok();
-            let api_key = env::var("IPINFO_TOKEN").expect("IPINFO_TOKEN must be set");
+            let api_key = option_env!("IPINFO_TOKEN").unwrap().to_string();
 
             // access embedded file
             let csv_path = app

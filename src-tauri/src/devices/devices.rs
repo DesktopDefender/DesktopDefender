@@ -192,7 +192,6 @@ pub fn resolve_network_hostnames(router_mac: &str, app_handle: &AppHandle) {
                 if device.hostname == "Unknown" {
                     let new_hostname = resolve_hostname(&device.ip_address);
                     if new_hostname != "Unknown" {
-                        println!("{:?} --- Hostname found {}", device, new_hostname);
                         let _ = add_hostname(
                             &network_conn,
                             &device.mac_address,
@@ -226,7 +225,7 @@ fn resolve_hostname(ip_address: &str) -> String {
                 "Unknown".to_string()
             }
         }
-        Ok(_) => "Error processing output".to_string(),
-        Err(_) => "Execution failed".to_string(),
+        Ok(_) => "Unknown".to_string(),
+        Err(_) => "Unknown".to_string(),
     }
 }

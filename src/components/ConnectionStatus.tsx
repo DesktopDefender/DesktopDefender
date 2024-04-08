@@ -4,7 +4,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useState } from "react";
 
 export const ConnectionStatus = () => {
-  const [connected, setConnected] = useState<boolean>(false);
+  const [connected, setConnected] = useState<boolean>(true);
 
   useEffect(() => {
     listen("connection_status", (e) => {

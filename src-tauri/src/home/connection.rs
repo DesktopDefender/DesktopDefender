@@ -11,7 +11,7 @@ pub fn init_connection_listener(window: Window) {
         window
             .emit("connection_status", &connected)
             .expect("Failed to emit event");
-        thread::sleep(Duration::from_secs(3));
+        thread::sleep(Duration::from_secs(5));
     });
 }
 

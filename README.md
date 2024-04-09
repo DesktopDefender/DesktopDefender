@@ -6,6 +6,21 @@ Welcome to the setup guide for Desktop Defender. Follow the steps below to confi
 ![alt text](image.png)
 
 
+## Installation Options
+Desktop Defender can be installed using one of the following two methods:
+
+### Manual Setup
+
+You may choose to set up the application manually by following the detailed steps provided.
+
+
+### Download from the Landing Page
+
+For detailed steps on how to download and install Desktop Defender from the landing page, click [here](#setup-using-the-landing-page).
+
+
+
+# Manual setup
 ## Prerequisites
 
 - You need an API token from IPinfo to access geo-location services. Register at [IPinfo for Developers](https://ipinfo.io/developers) to get your API token.
@@ -56,3 +71,14 @@ When building Desktop Defender, a `.dd` directory containing SQLite databases is
 #### Uninstalling
 
 If you decide to uninstall Desktop Defender, please remember to manually remove the `.dd` directory to clean up all stored data. This step ensures that no residual data remains on your system.
+
+
+# Setup using the Landing Page
+
+You can download the application directly from the [Desktop Defender Landing Page](https://desktopdefender.app).
+
+However since the binaries are yet to be signed the macOS gatekeeper adds a quarantine attribute downloads. You can remove this attribue by opening the terminal and typing the following command
+
+```bash
+xattr -cr /Applications/Desktop\ Defender.app
+```

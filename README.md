@@ -73,12 +73,20 @@ When building Desktop Defender, a `.dd` directory containing SQLite databases is
 If you decide to uninstall Desktop Defender, please remember to manually remove the `.dd` directory to clean up all stored data. This step ensures that no residual data remains on your system.
 
 
-# Setup using the Landing Page
+# Setup Using the Landing Page
 
-You can download the application directly from the [Desktop Defender Landing Page](https://desktopdefender.app).
+## Download
 
-However since the binaries are yet to be signed the macOS gatekeeper adds a quarantine attribute downloads. You can remove this attribue by opening the terminal and typing the following command
+To install Desktop Defender, please visit the [Desktop Defender Landing Page](https://desktopdefender.app) and download the application.
 
-```bash
-xattr -cr /Applications/Desktop\ Defender.app
-```
+## Configuring macOS Gatekeeper
+
+Due to the current lack of a digital signature, the macOS Gatekeeper may quarantine the downloaded binaries. To remove this quarantine attribute and proceed with the installation, perform the following steps:
+
+1. Open your Terminal application.
+
+2. Execute the command below to clear the quarantine attributes, allowing the app to run smoothly:
+
+   ```bash
+   xattr -cr /Applications/Desktop\ Defender.app
+   ```

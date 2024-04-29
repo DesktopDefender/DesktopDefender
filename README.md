@@ -115,6 +115,6 @@ When building Desktop Defender, a `.dd/` directory containing SQLite databases i
 
 ### Uninstalling
 
-If you decide to uninstall Desktop Defender, remember to manually remove the `.dd` directory to clean up all stored data. This step ensures that no residual data remains on your system. However, nothing bad happens if you do not delete it.
+If you decide to uninstall Desktop Defender, remember to manually remove the `.dd/` directory to clean up all stored data. This step ensures that no residual data remains on your system. However, nothing bad happens if you do not delete it.
 
 

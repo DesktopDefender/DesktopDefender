@@ -41,7 +41,7 @@ To be able to download and run the source code, you must ensure that you have th
     - To verify you have these installed, you can run:
     * `rustc --version`
     * `cargo --version`
-* [`node >= v18 & npm >= v9`](https://nodejs.org/en)
+* [`node >= v18.17 & npm >= v9`](https://nodejs.org/en)
     - To verify you have these installed, you can run:
     * `node --version`
     * `npm --version`
